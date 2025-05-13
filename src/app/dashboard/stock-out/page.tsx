@@ -1,468 +1,454 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { fetchWithAuth } from '@/lib/api/config';
-import { Loader2, Search, QrCode, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { 
+  Loader2, 
+  PackageCheck, 
+  Filter, 
+  Search, 
+  MoreHorizontal, 
+  FileText, 
+  Calendar, 
+  Package, 
+  Download,
+  RefreshCw,
+  ChevronDown,
+  User,
+  Clock,
+  Tag,
+  AlertCircle
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { motion } from 'framer-motion';
 
-// Define types
-interface ScannedItem {
-  barcode: string;
-  product_name: string;
-  unit_name: string;
-  unit_code: string;
-  scanned_at: string;
-}
+// Import mock data
+import { mockStockOutTransactions } from '@/lib/mock/transactions';
 
-interface ProductDetails {
-  barcode_id: number;
-  product_id: number;
-  product_name: string;
-  unit_name: string;
-  unit_code: string;
-  warehouse_name: string;
-  rack_name: string;
-  status: string;
-}
+// Date formatter
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Format reason with proper capitalization
+const formatReason = (reason: string) => {
+  switch(reason) {
+    case 'direct_request':
+      return 'Direct Request';
+    case 'incident':
+      return 'Incident';
+    case 'regular':
+      return 'Regular';
+    default:
+      return reason.charAt(0).toUpperCase() + reason.slice(1);
+  }
+};
 
 const StockOutPage = () => {
-  const { user, token } = useAuth();
-  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterReason, setFilterReason] = useState('');
+  const [dateRangeStart, setDateRangeStart] = useState('');
+  const [dateRangeEnd, setDateRangeEnd] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   
-  // State for form data
-  const [barcode, setBarcode] = useState('');
-  const [notes, setNotes] = useState('');
-  const [transactionReason, setTransactionReason] = useState<'direct_request' | 'incident' | 'regular'>('direct_request');
-  const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
-  
-  // State for feedback
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isScanningMode, setIsScanningMode] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [productDetails, setProductDetails] = useState<ProductDetails | null>(null);
-  
-  // Focus barcode input when scanning mode is active
+  // Load transactions
   useEffect(() => {
-    if (isScanningMode && barcodeInputRef.current) {
-      barcodeInputRef.current.focus();
-    }
-  }, [isScanningMode]);
+    const fetchTransactions = async () => {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setTransactions(mockStockOutTransactions);
+      setLoading(false);
+    };
+    
+    fetchTransactions();
+  }, []);
   
-  // Reset error/success messages after some time
-  useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage]);
-  
-  useEffect(() => {
-    if (errorMessage) {
-      const timer = setTimeout(() => {
-        setErrorMessage('');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [errorMessage]);
-  
-  // Handle barcode input
-  const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBarcode(e.target.value);
-    setProductDetails(null); // Clear product details when barcode changes
+  // Handle refresh
+  const handleRefresh = async () => {
+    setLoading(true);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setTransactions(mockStockOutTransactions);
+    setLoading(false);
   };
   
-  // Search for barcode
-  const handleBarcodeSearch = async () => {
-    if (!barcode.trim()) {
-      setErrorMessage('Please enter a barcode');
-      return;
+  // Filter transactions based on search term and filters
+  const filteredTransactions = transactions.filter(transaction => {
+    // Search term filter
+    if (searchTerm && !transaction.reference_number.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !transaction.requester?.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
     }
     
-    if (!token) {
-      setErrorMessage('You must be logged in to perform this action');
-      return;
+    // Reason filter
+    if (filterReason && transaction.transaction_reason !== filterReason) {
+      return false;
     }
     
-    setIsSubmitting(true);
-    setErrorMessage('');
-    
-    try {
-      const response = await fetchWithAuth(
-        `/api/products/barcode/${barcode.trim()}`,
-        { method: 'GET' },
-        token
-      );
-      
-      if (response.code === '200' && response.data) {
-        setProductDetails(response.data);
-      } else {
-        setErrorMessage('Barcode not found or item not available');
-      }
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to search for barcode');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  // Process barcode for stock out
-  const handleStockOut = async () => {
-    if (!barcode.trim()) {
-      setErrorMessage('Please enter a barcode');
-      return;
-    }
-    
-    if (!token || !user?.id) {
-      setErrorMessage('You must be logged in to perform this action');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setErrorMessage('');
-    
-    try {
-      const response = await fetchWithAuth(
-        '/api/transactions/stock-out/barcode',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            barcode: barcode.trim(),
-            user_id: user.id,
-            transaction_reason: transactionReason,
-            notes: notes
-          })
-        },
-        token
-      );
-      
-      if (response.code === '200') {
-        // Add scanned item to list
-        const newItem: ScannedItem = {
-          barcode: barcode.trim(),
-          product_name: response.data.product_name || 'Unknown Product',
-          unit_name: response.data.unit_name || 'Unknown Unit',
-          unit_code: response.data.unit_code || '',
-          scanned_at: new Date().toLocaleTimeString()
-        };
-        
-        setScannedItems([newItem, ...scannedItems]);
-        setSuccessMessage('Item successfully processed for stock out');
-        setBarcode(''); // Clear barcode input for next scan
-        setProductDetails(null); // Clear product details
-        
-        // Auto-focus barcode input for next scan if in scanning mode
-        if (isScanningMode && barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
-        }
-      } else {
-        setErrorMessage(response.message || 'Failed to process stock out');
-      }
-    } catch (error: any) {
-      setErrorMessage(error.message || 'An error occurred while processing your request');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  // Handle bulk stock out (all scanned items)
-  const handleBulkStockOut = async () => {
-    if (scannedItems.length === 0) {
-      setErrorMessage('No items have been scanned');
-      return;
-    }
-    
-    if (!token || !user?.id) {
-      setErrorMessage('You must be logged in to perform this action');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setErrorMessage('');
-    
-    try {
-      const response = await fetchWithAuth(
-        '/api/transactions/stock-out',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            reference_number: `SO-${Date.now()}`, // Generate a reference number
-            notes: notes,
-            user_id: user.id,
-            transaction_reason: transactionReason,
-            barcodes: scannedItems.map(item => item.barcode)
-          })
-        },
-        token
-      );
-      
-      if (response.code === '201') {
-        setSuccessMessage(`${scannedItems.length} items successfully processed for stock out`);
-        setScannedItems([]); // Clear all scanned items
-        setBarcode(''); // Clear barcode input
-        setProductDetails(null); // Clear product details
-      } else {
-        setErrorMessage(response.message || 'Failed to process bulk stock out');
-      }
-    } catch (error: any) {
-      setErrorMessage(error.message || 'An error occurred while processing your request');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  // Handle barcode key press (for scanner)
-  const handleBarcodeKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      if (productDetails) {
-        // If we already have product details, process stock out
-        handleStockOut();
-      } else {
-        // Otherwise, search for the barcode
-        handleBarcodeSearch();
+    // Date range filter (start)
+    if (dateRangeStart) {
+      const startDate = new Date(dateRangeStart);
+      const transactionDate = new Date(transaction.transaction_date);
+      if (transactionDate < startDate) {
+        return false;
       }
     }
+    
+    // Date range filter (end)
+    if (dateRangeEnd) {
+      const endDate = new Date(dateRangeEnd);
+      endDate.setHours(23, 59, 59, 999); // Set to end of day
+      const transactionDate = new Date(transaction.transaction_date);
+      if (transactionDate > endDate) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+  
+  // Navigate to create page
+  const handleCreateNew = () => {
+    router.push('/dashboard/stock-out/create');
   };
   
-  // Toggle scanning mode
-  const toggleScanningMode = () => {
-    setIsScanningMode(!isScanningMode);
-    setBarcode(''); // Clear barcode when switching modes
-    setProductDetails(null); // Clear product details
-    
-    // Focus barcode input when entering scanning mode
-    if (!isScanningMode && barcodeInputRef.current) {
-      setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
-        }
-      }, 100);
+  // Toggle filter panel
+  const toggleFilter = () => {
+    setIsFilterOpen(!isFilterOpen);
+  };
+  
+  // Reset filters
+  const resetFilters = () => {
+    setSearchTerm('');
+    setFilterReason('');
+    setDateRangeStart('');
+    setDateRangeEnd('');
+  };
+  
+  // Get reason badge color
+  const getReasonBadgeColor = (reason: string) => {
+    switch(reason) {
+      case 'direct_request':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'incident':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'regular':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
   };
   
-  // Remove a scanned item
-  const removeScannedItem = (barcode: string) => {
-    setScannedItems(scannedItems.filter(item => item.barcode !== barcode));
+  // Get reason icon
+  const getReasonIcon = (reason: string) => {
+    switch(reason) {
+      case 'direct_request':
+        return <User className="h-3 w-3 mr-1" />;
+      case 'incident':
+        return <AlertCircle className="h-3 w-3 mr-1" />;
+      case 'regular':
+        return <Clock className="h-3 w-3 mr-1" />;
+      default:
+        return null;
+    }
   };
   
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Stock Out</h1>
-      
-      {errorMessage && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 flex items-center">
-          <AlertCircle className="h-5 w-5 mr-2" />
-          {errorMessage}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Stock Out Transactions</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              View and manage all outgoing inventory transactions
+            </p>
+          </div>
+          
+          <div className="mt-4 sm:mt-0">
+            <Button 
+              onClick={handleCreateNew}
+              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <PackageCheck className="h-4 w-4 mr-2" />
+              Create New Stock Out
+            </Button>
+          </div>
         </div>
-      )}
-      
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4 flex items-center">
-          <CheckCircle className="h-5 w-5 mr-2" />
-          {successMessage}
-        </div>
-      )}
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <Card className="p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Barcode Scanner</h2>
+        
+        <Card className="mb-6">
+          <div className="p-4 flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                className="pl-10"
+                placeholder="Search by reference number or requester..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex gap-2">
               <Button 
-                variant={isScanningMode ? "default" : "outline"} 
-                onClick={toggleScanningMode}
-                className="flex items-center"
+                variant="outline" 
+                onClick={toggleFilter}
+                className={isFilterOpen ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800" : ""}
               >
-                <QrCode className="h-4 w-4 mr-2" />
-                {isScanningMode ? "Exit Scanning Mode" : "Enter Scanning Mode"}
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+                <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
               </Button>
-            </div>
-            
-            <div className="mb-4">
-              <div className="flex">
-                <Input
-                  ref={barcodeInputRef}
-                  type="text"
-                  value={barcode}
-                  onChange={handleBarcodeChange}
-                  onKeyPress={handleBarcodeKeyPress}
-                  placeholder="Enter or scan barcode"
-                  className="flex-1"
-                  disabled={isSubmitting}
-                  autoComplete="off"
-                />
-                <Button
-                  type="button"
-                  onClick={handleBarcodeSearch}
-                  className="ml-2 flex items-center"
-                  disabled={isSubmitting || !barcode.trim()}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4 mr-2" />
-                  )}
-                  Search
-                </Button>
-              </div>
               
-              {isScanningMode && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Scanning mode active. Scan barcodes with your scanner device.
-                </p>
-              )}
+              <Button variant="outline" onClick={handleRefresh}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => alert('Export as CSV')}>
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => alert('Export as Excel')}>
+                    Export as Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => alert('Export as PDF')}>
+                    Export as PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            
-            {productDetails && (
-              <div className="bg-gray-50 p-4 rounded-md mb-4">
-                <h3 className="font-medium mb-2">Product Details:</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <p><span className="font-medium">Barcode:</span> {barcode}</p>
-                  <p><span className="font-medium">Product:</span> {productDetails.product_name}</p>
-                  <p><span className="font-medium">Unit:</span> {productDetails.unit_name} ({productDetails.unit_code})</p>
-                  <p><span className="font-medium">Location:</span> {productDetails.warehouse_name}, {productDetails.rack_name}</p>
+          </div>
+          
+          {isFilterOpen && (
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Reason
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
+                    value={filterReason}
+                    onChange={(e) => setFilterReason(e.target.value)}
+                  >
+                    <option value="">All Reasons</option>
+                    <option value="direct_request">Direct Request</option>
+                    <option value="incident">Incident</option>
+                    <option value="regular">Regular</option>
+                  </select>
                 </div>
                 
-                <div className="mt-3">
-                  <Button
-                    onClick={handleStockOut}
-                    disabled={isSubmitting}
-                    className="w-full"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : null}
-                    Process Stock Out for This Item
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date From
+                  </label>
+                  <Input
+                    type="date"
+                    value={dateRangeStart}
+                    onChange={(e) => setDateRangeStart(e.target.value)}
+                    className="bg-white dark:bg-gray-700"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date To
+                  </label>
+                  <Input
+                    type="date"
+                    value={dateRangeEnd}
+                    onChange={(e) => setDateRangeEnd(e.target.value)}
+                    className="bg-white dark:bg-gray-700"
+                  />
+                </div>
+                
+                <div className="flex items-end">
+                  <Button variant="outline" onClick={resetFilters} className="w-full">
+                    Reset Filters
                   </Button>
                 </div>
               </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reason
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={transactionReason}
-                  onChange={(e) => setTransactionReason(e.target.value as any)}
-                >
-                  <option value="direct_request">Direct Request</option>
-                  <option value="incident">Incident</option>
-                  <option value="regular">Regular</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <Input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any additional notes"
-                />
-              </div>
             </div>
-          </Card>
-          
-          {scannedItems.length > 0 && (
-            <Card className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Scanned Items ({scannedItems.length})</h2>
-                <Button
-                  onClick={handleBulkStockOut}
-                  disabled={isSubmitting}
-                  variant="default"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : null}
-                  Process All Items
-                </Button>
-              </div>
-              
-              <ScrollArea className="h-[calc(100vh-500px)]">
-                <div className="space-y-2">
-                  {scannedItems.map((item, index) => (
-                    <div 
-                      key={`${item.barcode}-${index}`} 
-                      className="flex justify-between items-center p-3 bg-gray-50 rounded-md"
-                    >
-                      <div>
-                        <p className="font-medium">{item.product_name}</p>
-                        <div className="flex text-sm text-gray-500">
-                          <p className="mr-4">Barcode: {item.barcode}</p>
-                          <p>Unit: {item.unit_name} ({item.unit_code})</p>
-                        </div>
-                        <p className="text-xs text-gray-400">Scanned at: {item.scanned_at}</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeScannedItem(item.barcode)}
-                        className="text-gray-500 hover:text-red-500"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </Card>
           )}
-        </div>
+        </Card>
         
-        <div className="md:col-span-1">
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Instructions</h2>
-            
-            <div className="space-y-4 text-sm">
-              <div>
-                <h3 className="font-medium text-indigo-600">How to Process Stock Out:</h3>
-                <ol className="list-decimal list-inside mt-2 space-y-2">
-                  <li>Enter a barcode or use a barcode scanner</li>
-                  <li>Verify the product details</li>
-                  <li>Click "Process Stock Out" button</li>
-                  <li>Repeat for all items</li>
-                </ol>
+        <Card className="border border-gray-200 dark:border-gray-800 shadow-sm dark:bg-gray-800/50 overflow-hidden">
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                <span className="ml-2 text-gray-500 dark:text-gray-400">Loading transactions...</span>
               </div>
-              
-              <Separator />
-              
-              <div>
-                <h3 className="font-medium text-indigo-600">Scanning Mode:</h3>
-                <p className="mt-2">
-                  Enable "Scanning Mode" to continuously scan multiple barcodes for bulk processing.
-                  Items will be added to the scanned list automatically.
-                </p>
+            ) : filteredTransactions.length === 0 ? (
+              <div className="py-20 text-center">
+                <Package className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+                <h3 className="text-xl font-medium text-gray-700 dark:text-gray-300 mb-1">No transactions found</h3>
+                <p className="text-gray-500 dark:text-gray-400">Try adjusting your search or filters</p>
               </div>
-              
-              <Separator />
-              
-              <div>
-                <h3 className="font-medium text-indigo-600">Barcode Types:</h3>
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>PCS (Individual pieces): Start with "I"</li>
-                  <li>PACK (Package units): Start with "P"</li>
-                </ul>
-                <p className="mt-2 text-gray-500">
-                  The system will automatically reduce inventory by the appropriate unit type.
-                </p>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Reference Number
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Requester
+                    </th>
+                    <th className="px-4 py-3.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      PIC
+                    </th>
+                    <th className="px-4 py-3.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Reason
+                    </th>
+                    <th className="px-4 py-3.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Items
+                    </th>
+                    <th className="px-4 py-3.5 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredTransactions.map((transaction, index) => (
+                    <motion.tr 
+                      key={transaction.transaction_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: index * 0.05 }}
+                      className={index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/30'}
+                    >
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {transaction.reference_number}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            {formatDate(transaction.transaction_date)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            {transaction.requester || 'Unknown'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            {transaction.user_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center ${getReasonBadgeColor(transaction.transaction_reason)}`}>
+                          {getReasonIcon(transaction.transaction_reason)}
+                          {formatReason(transaction.transaction_reason)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                          {transaction.total_items} items
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                          {transaction.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => alert(`View details of transaction ${transaction.transaction_id}`)}>
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => alert(`Print transaction ${transaction.transaction_id}`)}>
+                              Print
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          
+          {filteredTransactions.length > 0 && (
+            <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <Button variant="outline" size="sm">Previous</Button>
+                <Button variant="outline" size="sm">Next</Button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Showing <span className="font-medium">1</span> to <span className="font-medium">{filteredTransactions.length}</span> of{' '}
+                    <span className="font-medium">{filteredTransactions.length}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <Button variant="outline" size="sm" className="rounded-l-md">Previous</Button>
+                    <Button variant="outline" size="sm" className="rounded-r-md ml-2">Next</Button>
+                  </nav>
+                </div>
               </div>
             </div>
-          </Card>
-        </div>
-      </div>
+          )}
+        </Card>
+      </motion.div>
     </div>
   );
 };

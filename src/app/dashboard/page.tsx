@@ -3,19 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { useApi } from '@/lib/hooks/useApi';
-import { 
-  getInventory, 
-  getAllProducts, 
-  getAllDefectProducts, 
-  getAllTransitProducts,
-  getProductByBarcode,
-  stockOutByBarcode
-} from '@/lib/api/services';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BarcodeItem } from '@/lib/api/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PackageCheck, 
@@ -39,15 +29,122 @@ import {
   Clock
 } from 'lucide-react';
 
+// Import mock data
+import { 
+  mockInventory, 
+  mockProducts, 
+  mockBarcodes,
+  mockUser,
+  getProductByBarcode,
+  mockStockOutByBarcode
+} from '@/lib/mock/data';
+
+// Mock defect and transit data
+const mockDefects = [
+  {
+    defect_id: 1,
+    product_id: 1,
+    product_unit_id: 1,
+    quantity: 2,
+    defect_reason: 'factory',
+    reported_date: '2025-01-10T14:30:00Z',
+    product_name: 'Laptop Dell XPS 13',
+    unit_name: 'Piece',
+    unit_code: 'PCS'
+  },
+  {
+    defect_id: 2,
+    product_id: 4,
+    product_unit_id: 6,
+    quantity: 5,
+    defect_reason: 'shipping',
+    reported_date: '2025-01-12T09:15:00Z',
+    product_name: 'Safety Helmet',
+    unit_name: 'Piece',
+    unit_code: 'PCS'
+  }
+];
+
+const mockTransits = [
+  {
+    transit_id: 1,
+    product_id: 3,
+    product_unit_id: 4,
+    quantity: 5,
+    source_warehouse_id: 1,
+    destination_warehouse_id: 3,
+    status: 'in_transit',
+    transit_reason: 'category_based',
+    transit_date: '2025-01-14T10:00:00Z',
+    product_name: 'First Aid Kit',
+    unit_name: 'Piece',
+    unit_code: 'PCS',
+    source_warehouse_name: 'Main Warehouse',
+    destination_warehouse_name: 'HSE Storage',
+    barcode_count: 5
+  },
+  {
+    transit_id: 2,
+    product_id: 1,
+    product_unit_id: 1,
+    quantity: 2,
+    source_warehouse_id: 1,
+    destination_warehouse_id: 2,
+    status: 'in_transit',
+    transit_reason: 'transfer_request',
+    transit_date: '2025-01-15T14:30:00Z',
+    product_name: 'Laptop Dell XPS 13',
+    unit_name: 'Piece',
+    unit_code: 'PCS',
+    source_warehouse_name: 'Main Warehouse',
+    destination_warehouse_name: 'East Warehouse',
+    barcode_count: 2
+  }
+];
+
 export default function DashboardPage() {
-  const { user, token } = useAuth();
+  // Directly use mockUser instead of auth context for demonstration
+  const auth = { user: mockUser, token: 'mock-token' };
+  
   const [quickBarcode, setQuickBarcode] = useState('');
-  const [barcodeResult, setBarcodeResult] = useState<BarcodeItem | null>(null);
-  const [barcodeError, setBarcodeError] = useState<string | null>(null);
+  const [barcodeResult, setBarcodeResult] = useState(null);
+  const [barcodeError, setBarcodeError] = useState(null);
   const [processingBarcode, setProcessingBarcode] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'activities' | 'lowstock'>('activities');
-  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [activeTab, setActiveTab] = useState('activities');
+  const barcodeInputRef = useRef(null);
+  
+  // Mock loading states with state variables
+  const [loadingInventory, setLoadingInventory] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingDefects, setLoadingDefects] = useState(true);
+  const [loadingTransits, setLoadingTransits] = useState(true);
+  
+  // State for mock data
+  const [inventory, setInventory] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [defects, setDefects] = useState([]);
+  const [transits, setTransits] = useState([]);
+  
+  // Simulate data loading
+  useEffect(() => {
+    const loadData = async () => {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      setInventory(mockInventory);
+      setProducts(mockProducts);
+      setDefects(mockDefects);
+      setTransits(mockTransits);
+      
+      setLoadingInventory(false);
+      setLoadingProducts(false);
+      setLoadingDefects(false);
+      setLoadingTransits(false);
+    };
+    
+    loadData();
+  }, []);
   
   // Auto-focus barcode input on load
   useEffect(() => {
@@ -58,35 +155,22 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Fetch inventory data
-  const { data: inventory, isLoading: loadingInventory, refetch: refetchInventory } = useApi({
-    fetchFn: (token) => getInventory(token),
-    deps: [],
-  });
-
-  // Fetch products data
-  const { data: products, isLoading: loadingProducts } = useApi({
-    fetchFn: (token) => getAllProducts(token),
-    deps: [],
-  });
-
-  // Fetch defects data
-  const { data: defects, isLoading: loadingDefects } = useApi({
-    fetchFn: (token) => getAllDefectProducts(token),
-    deps: [],
-  });
-
-  // Fetch transit data
-  const { data: transits, isLoading: loadingTransits } = useApi({
-    fetchFn: (token) => getAllTransitProducts(token),
-    deps: [],
-  });
+  // Refetch function to simulate reloading data
+  const refetchInventory = async () => {
+    setLoadingInventory(true);
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    setInventory(mockInventory);
+    setLoadingInventory(false);
+  };
 
   // Handle quick barcode lookup/stock-out
-  const handleQuickBarcode = async (e: React.FormEvent) => {
+  const handleQuickBarcode = async (e) => {
     e.preventDefault();
     
-    if (!quickBarcode.trim() || !token || !user?.id) {
+    if (!quickBarcode.trim() || !auth.user?.id) {
       return;
     }
 
@@ -96,10 +180,18 @@ export default function DashboardPage() {
     setSuccessMessage(null);
 
     try {
-      // Get barcode item info
-      const item = await getProductByBarcode(quickBarcode, token);
-      setBarcodeResult(item);
-    } catch (err: any) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get barcode item info using our mock function
+      const response = getProductByBarcode(quickBarcode);
+      
+      if (response.code === "200" && response.data) {
+        setBarcodeResult(response.data);
+      } else {
+        setBarcodeError(response.message || 'Item not found');
+      }
+    } catch (err) {
       setBarcodeError(err.message || 'Item not found');
     } finally {
       setProcessingBarcode(false);
@@ -108,7 +200,7 @@ export default function DashboardPage() {
 
   // Process stock out for quick barcode
   const processStockOut = async () => {
-    if (!barcodeResult || !token || !user?.id) {
+    if (!barcodeResult || !auth.user?.id) {
       return;
     }
 
@@ -117,28 +209,28 @@ export default function DashboardPage() {
     setSuccessMessage(null);
 
     try {
-      // Process stock out
-      await stockOutByBarcode(
-        barcodeResult.barcode,
-        user.id,
-        'direct_request',
-        'Quick stock-out from dashboard',
-        token
-      );
-
-      setSuccessMessage(`Successfully processed stock-out for ${barcodeResult.product_name} (${barcodeResult.unit_name})`);
-      setBarcodeResult(null);
-      setQuickBarcode('');
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Refetch inventory after stock out
-      refetchInventory();
+      // Process stock out with mock function
+      const response = mockStockOutByBarcode(barcodeResult.barcode);
       
-      // Focus barcode input again for the next scan
-      setTimeout(() => {
-        barcodeInputRef.current?.focus();
-      }, 100);
-      
-    } catch (err: any) {
+      if (response.code === "200") {
+        setSuccessMessage(`Successfully processed stock-out for ${barcodeResult.product_name} (${barcodeResult.unit_name})`);
+        setBarcodeResult(null);
+        setQuickBarcode('');
+        
+        // Simulate refetching inventory after stock out
+        await refetchInventory();
+        
+        // Focus barcode input again for the next scan
+        setTimeout(() => {
+          barcodeInputRef.current?.focus();
+        }, 100);
+      } else {
+        setBarcodeError(response.message || 'Failed to process stock-out');
+      }
+    } catch (err) {
       setBarcodeError(err.message || 'Failed to process stock-out');
     } finally {
       setProcessingBarcode(false);
@@ -216,7 +308,7 @@ export default function DashboardPage() {
       const category = item.category_type || 'Unknown';
       acc[category] = (acc[category] || 0) + Number(item.quantity);
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
   };
 
   const inventoryByCategory = getInventoryByCategory();
