@@ -1,3 +1,4 @@
+// lib/hooks/useApi.ts
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';

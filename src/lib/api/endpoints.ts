@@ -1,48 +1,69 @@
+// lib/api/endpoints.ts
+
 // Authentication
 export const AUTH_ENDPOINTS = {
   LOGIN: "/auth/login",
 };
 
-// Warehouse Endpoints
-export const WAREHOUSE_ENDPOINTS = {
-  BASE: "/api/warehouses",
-  DETAIL: (id: number) => `/api/warehouses/${id}`,
-  RACKS: (id: number) => `/api/warehouses/${id}/racks`,
-};
-
-// Rack Endpoints
-export const RACK_ENDPOINTS = {
-  BASE: "/api/racks",
-  DETAIL: (id: number) => `/api/racks/${id}`,
-  INVENTORY: (id: number) => `/api/racks/${id}/inventory`,
-};
-
-// Unit Endpoints
-export const UNIT_ENDPOINTS = {
-  BASE: "/api/units",
-  DETAIL: (id: number) => `/api/units/${id}`,
-};
-
-// Product Endpoints
+// Products
 export const PRODUCT_ENDPOINTS = {
-  BASE: "/api/products",
-  DETAIL: (id: number) => `/api/products/${id}`,
-  BARCODE: (barcode: string) => `/api/products/barcode/${barcode}`,
+  GET_ALL: "/api/products",
+  GET_BY_ID: (id: number) => `/api/products/${id}`,
+  GET_BY_BARCODE: (barcode: string) => `/api/products/barcode/${barcode}`,
+  BARCODE_IMAGE: (barcode: string) => `/api/products/barcode/image/${barcode}`,
+  AVAILABLE_BARCODES: (productId: number) => `/api/products/${productId}/barcodes/available`,
 };
 
-// Inventory Endpoints
+// Inventory
 export const INVENTORY_ENDPOINTS = {
-  BASE: "/api/inventory",
-  BY_PRODUCT: (id: number) => `/api/inventory/product/${id}`,
-  BY_WAREHOUSE: (id: number) => `/api/inventory/warehouse/${id}`,
-  BY_RACK: (id: number) => `/api/inventory/rack/${id}`,
+  GET_ALL: "/api/inventory",
+  GET_BY_WAREHOUSE: (warehouseId: number) => `/api/inventory/warehouse/${warehouseId}`,
+  GET_BY_CATEGORY_TYPE: (categoryType: string) => `/api/inventory/category-type/${categoryType}`,
+  GET_BY_BARCODE: (barcode: string) => `/api/inventory/barcode/${barcode}`,
 };
 
-// Transaction Endpoints
+// Transactions
 export const TRANSACTION_ENDPOINTS = {
-  BASE: "/api/transactions",
-  DETAIL: (id: number) => `/api/transactions/${id}`,
   STOCK_IN: "/api/transactions/stock-in",
   STOCK_OUT: "/api/transactions/stock-out",
-  TRANSFER: "/api/transactions/transfer",
+  STOCK_OUT_DIRECT: "/api/transactions/stock-out/direct-request",
+  STOCK_OUT_INCIDENT: "/api/transactions/stock-out/incident",
+  STOCK_OUT_REGULAR: "/api/transactions/stock-out/regular",
+  STOCK_OUT_BARCODE: "/api/transactions/stock-out/barcode",
+  TRANSIT: "/api/transactions/transit",
+  TRANSIT_COMPLETE: (transitId: number) => `/api/transactions/transit/${transitId}/complete`,
+  TRANSIT_CANCEL: (transitId: number) => `/api/transactions/transit/${transitId}/cancel`,
+  DEFECT: "/api/transactions/defect",
+  RECORD_PARTIAL_DEFECT: "/api/transactions/defect/record-partial",
+};
+
+// Warehouses
+export const WAREHOUSE_ENDPOINTS = {
+  GET_ALL: "/api/warehouses",
+  GET_BY_ID: (id: number) => `/api/warehouses/${id}`,
+};
+
+// Racks
+export const RACK_ENDPOINTS = {
+  GET_ALL: "/api/racks",
+  GET_BY_ID: (id: number) => `/api/racks/${id}`,
+  GET_BY_WAREHOUSE: (warehouseId: number) => `/api/racks/warehouse/${warehouseId}`,
+};
+
+// Units
+export const UNIT_ENDPOINTS = {
+  GET_ALL: "/api/units",
+  GET_BY_ID: (id: number) => `/api/units/${id}`,
+};
+
+// Categories
+export const CATEGORY_ENDPOINTS = {
+  GET_ALL: "/api/categories",
+  GET_BY_ID: (id: number) => `/api/categories/${id}`,
+};
+
+// Suppliers
+export const SUPPLIER_ENDPOINTS = {
+  GET_ALL: "/api/suppliers",
+  GET_BY_ID: (id: number) => `/api/suppliers/${id}`,
 };

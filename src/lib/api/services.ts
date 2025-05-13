@@ -1,25 +1,33 @@
+// lib/api/services.ts
 import { fetchWithAuth } from "./config";
-import {
-  AUTH_ENDPOINTS,
+import { 
+  AUTH_ENDPOINTS, 
+  PRODUCT_ENDPOINTS, 
+  INVENTORY_ENDPOINTS, 
+  TRANSACTION_ENDPOINTS,
   WAREHOUSE_ENDPOINTS,
   RACK_ENDPOINTS,
   UNIT_ENDPOINTS,
-  PRODUCT_ENDPOINTS,
-  INVENTORY_ENDPOINTS,
-  TRANSACTION_ENDPOINTS,
+  CATEGORY_ENDPOINTS,
+  SUPPLIER_ENDPOINTS
 } from "./endpoints";
-import {
-  LoginResponse,
-  ApiResponse,
+import { 
+  LoginResponse, 
+  InventoryItem, 
+  Product,
+  ProductUnit,
+  Unit,
   Warehouse,
   Rack,
-  Unit,
-  Product,
-  Inventory,
+  Category,
+  Supplier,
   Transaction,
+  StockOutResponse,
   StockInRequest,
-  StockOutRequest,
-  TransferRequest,
+  StockInResponse,
+  DefectProduct,
+  TransitProduct,
+  BarcodeItem
 } from "./types";
 
 //=============================================================================
@@ -40,7 +48,7 @@ export const loginUser = async (
     if (response && response.token) {
       return response;
     } else if (response && response.value && response.value.token) {
-      // Jika token ada di dalam property value
+      // If token is in the value property
       return {
         ...response,
         token: response.value.token,
@@ -51,477 +59,283 @@ export const loginUser = async (
   } catch (error) {
     console.error("Login error:", error);
     throw error;
-  } 
-};
-
-//=============================================================================
-// WAREHOUSE SERVICES
-//=============================================================================
-
-export const getWarehouses = async (token: string): Promise<Warehouse[]> => {
-  try {
-    const response = await fetchWithAuth(WAREHOUSE_ENDPOINTS.BASE, {
-      method: 'GET',
-    }, token);
-    
-    console.log("Warehouse API Response:", response);
-    
-    // Pastikan mengembalikan array dengan memeriksa format respons
-    return Array.isArray(response) ? response : 
-           (response.data || response.value || []);
-  } catch (error) {
-    console.error("Warehouse fetch error:", error);
-    throw error;
   }
-};
-
-export const getRacksByWarehouseId = async (
-  warehouseId: number,
-  token: string
-): Promise<Rack[]> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.RACKS(warehouseId),
-    {
-      method: "GET",
-    },
-    token
-  );
-}
-
-export const getWarehouseById = async (id: number, token: string): Promise<Warehouse> => {
-  try {
-    const response = await fetchWithAuth(WAREHOUSE_ENDPOINTS.DETAIL(id), {
-      method: 'GET',
-    }, token);
-    
-    console.log("API response for warehouse:", response);
-    
-    // Check how the data is structured - adjust based on your API response format
-    if (response.data) {
-      return response.data;
-    } else if (response.value) {
-      return response.value;
-    } else {
-      return response; // Asumsi response langsung berisi data warehouse
-    }
-  } catch (error) {
-    console.error(`Error fetching warehouse with ID ${id}:`, error);
-    throw error;
-  }
-};
-
-export const createWarehouse = async (
-  warehouseData: Partial<Warehouse>,
-  token: string
-): Promise<ApiResponse<Warehouse>> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.BASE,
-    {
-      method: "POST",
-      body: JSON.stringify(warehouseData),
-    },
-    token
-  );
-};
-
-export const updateWarehouse = async (
-  id: number,
-  warehouseData: Partial<Warehouse>,
-  token: string
-): Promise<ApiResponse<Warehouse>> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.DETAIL(id),
-    {
-      method: "PUT",
-      body: JSON.stringify(warehouseData),
-    },
-    token
-  );
-};
-
-export const deleteWarehouse = async (
-  id: number,
-  token: string
-): Promise<ApiResponse<null>> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.DETAIL(id),
-    {
-      method: "DELETE",
-    },
-    token
-  );
-};
-
-export const getWarehouseRacks = async (
-  warehouseId: number,
-  token: string
-): Promise<Rack[]> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.RACKS(warehouseId),
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-//=============================================================================
-// RACK SERVICES
-//=============================================================================
-
-export const getRacks = async (token: string): Promise<Rack[]> => {
-  try {
-    const response = await fetchWithAuth(
-      RACK_ENDPOINTS.BASE,
-      {
-        method: "GET",
-      },
-      token
-    );
-    
-    console.log("Rack API Response:", response);
-    
-    // Ensure we return an array by checking the response format
-    return Array.isArray(response) ? response : 
-           (response.data || response.value || []);
-  } catch (error) {
-    console.error("Rack fetch error:", error);
-    throw error;
-  }
-};
-
-export const getRackById = async (id: number, token: string): Promise<Rack> => {
-  return fetchWithAuth(
-    RACK_ENDPOINTS.DETAIL(id),
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-export const createRack = async (
-  rackData: Partial<Rack>,
-  token: string
-): Promise<ApiResponse<Rack>> => {
-  return fetchWithAuth(
-    RACK_ENDPOINTS.BASE,
-    {
-      method: "POST",
-      body: JSON.stringify(rackData),
-    },
-    token
-  );
-};
-
-export const updateRack = async (
-  id: number,
-  rackData: Partial<Rack>,
-  token: string
-): Promise<ApiResponse<Rack>> => {
-  return fetchWithAuth(
-    RACK_ENDPOINTS.DETAIL(id),
-    {
-      method: "PUT",
-      body: JSON.stringify(rackData),
-    },
-    token
-  );
-};
-
-export const deleteRack = async (
-  id: number,
-  token: string
-): Promise<ApiResponse<null>> => {
-  return fetchWithAuth(
-    RACK_ENDPOINTS.DETAIL(id),
-    {
-      method: "DELETE",
-    },
-    token
-  );
-};
-
-export const getRackInventory = async (
-  rackId: number,
-  token: string
-): Promise<Inventory[]> => {
-  return fetchWithAuth(
-    RACK_ENDPOINTS.INVENTORY(rackId),
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-//=============================================================================
-// UNIT SERVICES
-//=============================================================================
-
-export const getUnits = async (token: string): Promise<Unit[]> => {
-  return fetchWithAuth(
-    UNIT_ENDPOINTS.BASE,
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-export const getUnitById = async (id: number, token: string): Promise<Unit> => {
-  return fetchWithAuth(
-    UNIT_ENDPOINTS.DETAIL(id),
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-export const createUnit = async (
-  unitData: Partial<Unit>,
-  token: string
-): Promise<ApiResponse<Unit>> => {
-  return fetchWithAuth(
-    UNIT_ENDPOINTS.BASE,
-    {
-      method: "POST",
-      body: JSON.stringify(unitData),
-    },
-    token
-  );
-};
-
-export const updateUnit = async (
-  id: number,
-  unitData: Partial<Unit>,
-  token: string
-): Promise<ApiResponse<Unit>> => {
-  return fetchWithAuth(
-    UNIT_ENDPOINTS.DETAIL(id),
-    {
-      method: "PUT",
-      body: JSON.stringify(unitData),
-    },
-    token
-  );
-};
-
-export const deleteUnit = async (
-  id: number,
-  token: string
-): Promise<ApiResponse<null>> => {
-  return fetchWithAuth(
-    UNIT_ENDPOINTS.DETAIL(id),
-    {
-      method: "DELETE",
-    },
-    token
-  );
-};
-
-//=============================================================================
-// PRODUCT SERVICES
-//=============================================================================
-
-export const getProducts = async (token: string): Promise<Product[]> => {
-  return fetchWithAuth(
-    PRODUCT_ENDPOINTS.BASE,
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-export const getProductById = async (
-  id: number,
-  token: string
-): Promise<Product> => {
-  return fetchWithAuth(
-    PRODUCT_ENDPOINTS.DETAIL(id),
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-export const getProductByBarcode = async (
-  barcode: string,
-  token: string
-): Promise<Product> => {
-  return fetchWithAuth(
-    PRODUCT_ENDPOINTS.BARCODE(barcode),
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-export const createProduct = async (
-  productData: Partial<Product>,
-  token: string
-): Promise<ApiResponse<Product>> => {
-  return fetchWithAuth(
-    PRODUCT_ENDPOINTS.BASE,
-    {
-      method: "POST",
-      body: JSON.stringify(productData),
-    },
-    token
-  );
-};
-
-export const updateProduct = async (
-  id: number,
-  productData: Partial<Product>,
-  token: string
-): Promise<ApiResponse<Product>> => {
-  return fetchWithAuth(
-    PRODUCT_ENDPOINTS.DETAIL(id),
-    {
-      method: "PUT",
-      body: JSON.stringify(productData),
-    },
-    token
-  );
-};
-
-export const deleteProduct = async (
-  id: number,
-  token: string
-): Promise<ApiResponse<null>> => {
-  return fetchWithAuth(
-    PRODUCT_ENDPOINTS.DETAIL(id),
-    {
-      method: "DELETE",
-    },
-    token
-  );
 };
 
 //=============================================================================
 // INVENTORY SERVICES
 //=============================================================================
 
-export const getInventory = async (token: string): Promise<Inventory[]> => {
-  const response = await fetchWithAuth(INVENTORY_ENDPOINTS.BASE, {
+// Get all inventory items
+export const getInventory = async (token: string): Promise<InventoryItem[]> => {
+  const response = await fetchWithAuth(INVENTORY_ENDPOINTS.GET_ALL, {
     method: 'GET',
   }, token);
   
-  // Return langsung array data, bukan seluruh respons
-  return response.data || [];
+  return response.data;
 };
 
-export const getInventoryByProduct = async (
-  productId: number,
-  token: string
-): Promise<Inventory[]> => {
-  return fetchWithAuth(
-    INVENTORY_ENDPOINTS.BY_PRODUCT(productId),
-    {
-      method: "GET",
-    },
-    token
-  );
+// Get inventory by warehouse
+export const getInventoryByWarehouse = async (warehouseId: number, token: string): Promise<InventoryItem[]> => {
+  const response = await fetchWithAuth(INVENTORY_ENDPOINTS.GET_BY_WAREHOUSE(warehouseId), {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
 };
 
-export const getInventoryByWarehouse = async (
-  warehouseId: number,
-  token: string
-): Promise<Inventory[]> => {
-  return fetchWithAuth(
-    INVENTORY_ENDPOINTS.BY_WAREHOUSE(warehouseId),
-    {
-      method: "GET",
-    },
-    token
-  );
+// Get inventory by category type (GA or NON-GA)
+export const getInventoryByCategoryType = async (categoryType: 'GA' | 'NON-GA', token: string): Promise<InventoryItem[]> => {
+  const response = await fetchWithAuth(INVENTORY_ENDPOINTS.GET_BY_CATEGORY_TYPE(categoryType), {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
 };
 
-export const getInventoryByRack = async (
-  rackId: number,
-  token: string
-): Promise<Inventory[]> => {
-  return fetchWithAuth(
-    INVENTORY_ENDPOINTS.BY_RACK(rackId),
-    {
-      method: "GET",
-    },
-    token
-  );
+// Get inventory item by barcode
+export const getInventoryByBarcode = async (barcode: string, token: string): Promise<BarcodeItem> => {
+  const response = await fetchWithAuth(INVENTORY_ENDPOINTS.GET_BY_BARCODE(barcode), {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+//=============================================================================
+// PRODUCT SERVICES
+//=============================================================================
+
+// Get all products
+export const getAllProducts = async (token: string): Promise<Product[]> => {
+  const response = await fetchWithAuth(PRODUCT_ENDPOINTS.GET_ALL, {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+// Get product by ID
+export const getProductById = async (productId: number, token: string): Promise<Product> => {
+  const response = await fetchWithAuth(PRODUCT_ENDPOINTS.GET_BY_ID(productId), {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+// Get product by barcode
+export const getProductByBarcode = async (barcode: string, token: string): Promise<BarcodeItem> => {
+  const response = await fetchWithAuth(PRODUCT_ENDPOINTS.GET_BY_BARCODE(barcode), {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+// Get barcode image URL
+export const getBarcodeImageUrl = (barcode: string): string => {
+  return `${process.env.NEXT_PUBLIC_API_URL}${PRODUCT_ENDPOINTS.BARCODE_IMAGE(barcode)}`;
+};
+
+//=============================================================================
+// WAREHOUSE SERVICES
+//=============================================================================
+
+// Get all warehouses
+export const getAllWarehouses = async (token: string): Promise<Warehouse[]> => {
+  const response = await fetchWithAuth(WAREHOUSE_ENDPOINTS.GET_ALL, {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+// Get warehouse by ID
+export const getWarehouseById = async (warehouseId: number, token: string): Promise<Warehouse> => {
+  const response = await fetchWithAuth(WAREHOUSE_ENDPOINTS.GET_BY_ID(warehouseId), {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+//=============================================================================
+// RACK SERVICES
+//=============================================================================
+
+// Get all racks
+export const getAllRacks = async (token: string): Promise<Rack[]> => {
+  const response = await fetchWithAuth(RACK_ENDPOINTS.GET_ALL, {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+// Get racks by warehouse ID
+export const getRacksByWarehouse = async (warehouseId: number, token: string): Promise<Rack[]> => {
+  const response = await fetchWithAuth(RACK_ENDPOINTS.GET_BY_WAREHOUSE(warehouseId), {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+//=============================================================================
+// UNIT SERVICES
+//=============================================================================
+
+// Get all units
+export const getAllUnits = async (token: string): Promise<Unit[]> => {
+  const response = await fetchWithAuth(UNIT_ENDPOINTS.GET_ALL, {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+//=============================================================================
+// CATEGORY SERVICES
+//=============================================================================
+
+// Get all categories
+export const getAllCategories = async (token: string): Promise<Category[]> => {
+  const response = await fetchWithAuth(CATEGORY_ENDPOINTS.GET_ALL, {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+//=============================================================================
+// SUPPLIER SERVICES
+//=============================================================================
+
+// Get all suppliers
+export const getAllSuppliers = async (token: string): Promise<Supplier[]> => {
+  const response = await fetchWithAuth(SUPPLIER_ENDPOINTS.GET_ALL, {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
 };
 
 //=============================================================================
 // TRANSACTION SERVICES
 //=============================================================================
 
-export const getTransactions = async (
-  token: string
-): Promise<Transaction[]> => {
-  return fetchWithAuth(
-    TRANSACTION_ENDPOINTS.BASE,
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-export const getTransactionById = async (
-  id: number,
-  token: string
-): Promise<Transaction> => {
-  return fetchWithAuth(
-    TRANSACTION_ENDPOINTS.DETAIL(id),
-    {
-      method: "GET",
-    },
-    token
-  );
-};
-
-export const createStockIn = async (
+// Stock In (create new stock-in transaction)
+export const stockIn = async (
   stockInData: StockInRequest,
   token: string
-): Promise<ApiResponse<Transaction>> => {
-  return fetchWithAuth(
-    TRANSACTION_ENDPOINTS.STOCK_IN,
-    {
-      method: "POST",
-      body: JSON.stringify(stockInData),
-    },
-    token
-  );
+): Promise<StockInResponse> => {
+  const response = await fetchWithAuth(TRANSACTION_ENDPOINTS.STOCK_IN, {
+    method: 'POST',
+    body: JSON.stringify(stockInData),
+  }, token);
+  
+  return response;
 };
 
-export const createStockOut = async (
-  stockOutData: StockOutRequest,
+// Stock out by barcode (single item)
+export const stockOutByBarcode = async (
+  barcode: string, 
+  userId: number, 
+  transactionReason: 'direct_request' | 'incident' | 'regular' = 'direct_request',
+  notes: string = '',
   token: string
-): Promise<ApiResponse<Transaction>> => {
-  return fetchWithAuth(
-    TRANSACTION_ENDPOINTS.STOCK_OUT,
-    {
-      method: "POST",
-      body: JSON.stringify(stockOutData),
-    },
-    token
-  );
+): Promise<StockOutResponse> => {
+  const response = await fetchWithAuth(TRANSACTION_ENDPOINTS.STOCK_OUT_BARCODE, {
+    method: 'POST',
+    body: JSON.stringify({
+      barcode,
+      user_id: userId,
+      transaction_reason: transactionReason,
+      notes
+    }),
+  }, token);
+  
+  return response;
 };
 
-export const createTransfer = async (
-  transferData: TransferRequest,
+// Bulk stock out with multiple barcodes
+export const bulkStockOut = async (
+  barcodes: string[],
+  userId: number,
+  referenceNumber: string,
+  transactionReason: 'direct_request' | 'incident' | 'regular' = 'regular',
+  notes: string = '',
   token: string
-): Promise<ApiResponse<Transaction>> => {
-  return fetchWithAuth(
-    TRANSACTION_ENDPOINTS.TRANSFER,
-    {
-      method: "POST",
-      body: JSON.stringify(transferData),
-    },
-    token
-  );
+): Promise<StockOutResponse> => {
+  const response = await fetchWithAuth(TRANSACTION_ENDPOINTS.STOCK_OUT, {
+    method: 'POST',
+    body: JSON.stringify({
+      reference_number: referenceNumber,
+      notes,
+      user_id: userId,
+      transaction_reason: transactionReason,
+      barcodes
+    }),
+  }, token);
+  
+  return response;
+};
+
+// Get all defect products
+export const getAllDefectProducts = async (token: string): Promise<DefectProduct[]> => {
+  const response = await fetchWithAuth(TRANSACTION_ENDPOINTS.DEFECT, {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+// Get all transit products
+export const getAllTransitProducts = async (token: string): Promise<TransitProduct[]> => {
+  const response = await fetchWithAuth(TRANSACTION_ENDPOINTS.TRANSIT, {
+    method: 'GET',
+  }, token);
+  
+  return response.data;
+};
+
+// Complete transit
+export const completeTransit = async (transitId: number, token: string): Promise<any> => {
+  const response = await fetchWithAuth(TRANSACTION_ENDPOINTS.TRANSIT_COMPLETE(transitId), {
+    method: 'PUT',
+  }, token);
+  
+  return response;
+};
+
+// Cancel transit
+export const cancelTransit = async (transitId: number, token: string): Promise<any> => {
+  const response = await fetchWithAuth(TRANSACTION_ENDPOINTS.TRANSIT_CANCEL(transitId), {
+    method: 'PUT',
+  }, token);
+  
+  return response;
+};
+
+// Record partial defect
+export const recordPartialDefect = async (
+  defectData: {
+    product_id: number;
+    product_unit_id: number;
+    barcode_id?: number;
+    defective_quantity: number;
+    defect_reason: 'factory' | 'shipping' | 'other';
+    notes?: string;
+    parent_unit_id?: number;
+    parent_quantity?: number;
+  },
+  token: string
+): Promise<any> => {
+  const response = await fetchWithAuth(TRANSACTION_ENDPOINTS.RECORD_PARTIAL_DEFECT, {
+    method: 'POST',
+    body: JSON.stringify(defectData),
+  }, token);
+  
+  return response;
 };
