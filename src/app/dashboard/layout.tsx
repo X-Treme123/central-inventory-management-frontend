@@ -101,18 +101,19 @@ export default function DashboardLayout({
       icon: <LayoutDashboard size={20} />,
       description: "Overview of inventory system",
     },
+        {
+      name: "Stock In",
+      path: "/dashboard/stock-in",
+      icon: <PackagePlus size={20} />,
+      description: "Add new items to inventory",
+    },
     {
       name: "Stock Out",
       path: "/dashboard/stock-out",
       icon: <PackageCheck size={20} />,
       description: "Process items leaving inventory",
     },
-    {
-      name: "Stock In",
-      path: "/dashboard/stock-in",
-      icon: <PackagePlus size={20} />,
-      description: "Add new items to inventory",
-    },
+
     {
       name: "Products",
       path: "/dashboard/products",
@@ -137,12 +138,12 @@ export default function DashboardLayout({
       icon: <Truck size={20} />,
       description: "Manage vendor relationships",
     },
-    {
-      name: "Reports",
-      path: "/dashboard/reports",
-      icon: <BarChart3 size={20} />,
-      description: "View inventory analytics",
-    },
+    // {
+    //   name: "Reports",
+    //   path: "/dashboard/reports",
+    //   icon: <BarChart3 size={20} />,
+    //   description: "View inventory analytics",
+    // },
   ];
 
   if (!isLoaded) {
