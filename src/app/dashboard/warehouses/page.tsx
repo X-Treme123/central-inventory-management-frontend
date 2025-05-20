@@ -1,229 +1,601 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Search, 
-  Plus, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
+import { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
+import {
+  Search,
+  Plus,
+  MoreVertical,
+  Edit,
+  Trash2,
   Eye,
   Filter,
   Warehouse,
+  Package,
   BarChart3,
   MapPin,
-  Package,
   AlertTriangle,
   Settings,
-  TrendingUp
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+  TrendingUp,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Mock data based on the provided structure
-const mockWarehouses = [
-  {
-    warehouse_id: 1,
-    warehouse_name: "Main Warehouse",
-    warehouse_code: "WH-MAIN",
-    location: "Gudang Pusat",
-    capacity: 1000,
-    current_utilization: 750,
-    warehouse_type: "GENERAL",
-    status: "active",
-    created_at: "2025-01-01T00:00:00Z",
-    updated_at: "2025-01-01T00:00:00Z",
-    racks: [
-      { name: "Rack A1", capacity: 100, current_load: 75 },
-      { name: "Rack A2", capacity: 100, current_load: 60 },
-      { name: "Rack B1", capacity: 120, current_load: 90 }
-    ]
-  },
-  {
-    warehouse_id: 2,
-    warehouse_name: "GA Storage",
-    warehouse_code: "WH-GA",
-    location: "Gudang Selatan",
-    capacity: 500,
-    current_utilization: 350,
-    warehouse_type: "GA_ONLY",
-    status: "active",
-    created_at: "2025-01-01T00:00:00Z",
-    updated_at: "2025-01-01T00:00:00Z",
-    racks: [
-      { name: "GA Office Supplies", capacity: 80, current_load: 55 },
-      { name: "GA IT Equipment", capacity: 60, current_load: 40 },
-      { name: "GA Furniture", capacity: 100, current_load: 70 }
-    ]
-  },
-  {
-    warehouse_id: 3,
-    warehouse_name: "Production Materials",
-    warehouse_code: "WH-PROD",
-    location: "Gudang Distribusi",
-    capacity: 2000,
-    current_utilization: 1500,
-    warehouse_type: "NON_GA_ONLY",
-    status: "active",
-    created_at: "2025-01-01T00:00:00Z",
-    updated_at: "2025-01-01T00:00:00Z",
-    racks: [
-      { name: "Raw Materials A", capacity: 200, current_load: 180 },
-      { name: "Spare Parts", capacity: 150, current_load: 120 },
-      { name: "Lubricants & Oils", capacity: 100, current_load: 60 }
-    ]
-  },
-  {
-    warehouse_id: 4,
-    warehouse_name: "HSE Storage",
-    warehouse_code: "WH-HSE",
-    location: "Gudang Selatan",
-    capacity: 300,
-    current_utilization: 200,
-    warehouse_type: "SPECIAL",
-    status: "active",
-    created_at: "2025-01-01T00:00:00Z",
-    updated_at: "2025-01-01T00:00:00Z",
-    racks: [
-      { name: "Safety Equipment", capacity: 80, current_load: 50 },
-      { name: "Medical Supplies", capacity: 60, current_load: 35 }
-    ]
-  },
-  {
-    warehouse_id: 5,
-    warehouse_name: "Cold Storage",
-    warehouse_code: "WH-COLD",
-    location: "Gudang Utama",
-    capacity: 200,
-    current_utilization: 80,
-    warehouse_type: "TEMPERATURE_CONTROLLED",
-    status: "under_maintenance",
-    created_at: "2025-01-01T00:00:00Z",
-    updated_at: "2025-01-01T00:00:00Z",
-    racks: [
-      { name: "Temperature Controlled A", capacity: 50, current_load: 20 }
-    ]
-  }
-];
-
-const warehouseTypes = [
-  { value: 'all', label: 'All Types' },
-  { value: 'GENERAL', label: 'General' },
-  { value: 'GA_ONLY', label: 'GA Only' },
-  { value: 'NON_GA_ONLY', label: 'Production' },
-  { value: 'SPECIAL', label: 'Special' },
-  { value: 'TEMPERATURE_CONTROLLED', label: 'Cold Storage' }
-];
+import { useAuth } from "@/context/AuthContext";
+import {
+  createWarehouse,
+  getAllWarehouses,
+  createContainer,
+  getContainersByWarehouse,
+  createRack,
+  getRacksByContainer,
+} from "@/lib/api/services";
+import type { Warehouse, Container, Rack } from "@/lib/api/types";
 
 export default function WarehousesPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const { token } = useAuth();
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [containers, setContainers] = useState<{
+    [warehouseId: string]: Container[];
+  }>({});
+  const [racks, setRacks] = useState<{ [containerId: string]: Rack[] }>({});
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Dialog states
+  const [isWarehouseDialogOpen, setIsWarehouseDialogOpen] = useState(false);
+  const [isContainerDialogOpen, setIsContainerDialogOpen] = useState(false);
+  const [isRackDialogOpen, setIsRackDialogOpen] = useState(false);
+
+  // Form states
+  const [newWarehouse, setNewWarehouse] = useState({
+    name: "",
+    description: "",
+  });
+  const [newContainer, setNewContainer] = useState({
+    warehouse_id: "",
+    name: "",
+    description: "",
+  });
+  const [newRack, setNewRack] = useState({
+    container_id: "",
+    name: "",
+    description: "",
+  });
+
+  // Loading states
+  const [isCreatingWarehouse, setIsCreatingWarehouse] = useState(false);
+  const [isCreatingContainer, setIsCreatingContainer] = useState(false);
+  const [isCreatingRack, setIsCreatingRack] = useState(false);
+
+  // Error states
+  const [error, setError] = useState("");
+
+  // Fetch warehouses on component mount
+  useEffect(() => {
+    if (token) {
+      fetchWarehouses();
+    }
+  }, [token]);
+
+  // Fetch containers for each warehouse
+  useEffect(() => {
+    if (warehouses.length > 0 && token) {
+      warehouses.forEach((warehouse) => {
+        fetchContainersByWarehouse(warehouse.id);
+      });
+    }
+  }, [warehouses, token]);
+
+  // Fetch racks for each container when containers change
+  useEffect(() => {
+    if (Object.keys(containers).length > 0 && token) {
+      Object.values(containers)
+        .flat()
+        .forEach((container) => {
+          fetchRacksByContainer(container.id);
+        });
+    }
+  }, [containers, token]);
+
+  const fetchWarehouses = async () => {
+    try {
+      setLoading(true);
+      const response = await getAllWarehouses(token);
+      if (response.code === "200" && response.data) {
+        setWarehouses(response.data);
+      } else {
+        setError("Failed to fetch warehouses");
+      }
+    } catch (err) {
+      console.error("Error fetching warehouses:", err);
+      setError("Failed to fetch warehouses");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchContainersByWarehouse = async (warehouseId: string) => {
+    try {
+      const response = await getContainersByWarehouse(token, warehouseId);
+      if (response.code === "200" && response.data) {
+        setContainers((prev) => ({
+          ...prev,
+          [warehouseId]: response.data,
+        }));
+      }
+    } catch (err) {
+      console.error(
+        `Error fetching containers for warehouse ${warehouseId}:`,
+        err
+      );
+    }
+  };
+
+  const fetchRacksByContainer = async (containerId: string) => {
+    try {
+      const response = await getRacksByContainer(token, containerId);
+      if (response.code === "200" && response.data) {
+        setRacks((prev) => ({
+          ...prev,
+          [containerId]: response.data,
+        }));
+      }
+    } catch (err) {
+      console.error(`Error fetching racks for container ${containerId}:`, err);
+    }
+  };
+
+  const handleCreateWarehouse = async () => {
+    try {
+      setIsCreatingWarehouse(true);
+      setError("");
+
+      if (!newWarehouse.name.trim()) {
+        setError("Warehouse name is required");
+        return;
+      }
+
+      const response = await createWarehouse(
+        token,
+        newWarehouse.name,
+        newWarehouse.description
+      );
+
+      if (response.code === "201" && response.data) {
+        setWarehouses((prev) => [...prev, response.data]);
+        setNewWarehouse({ name: "", description: "" });
+        setIsWarehouseDialogOpen(false);
+      } else {
+        setError(response.message || "Failed to create warehouse");
+      }
+    } catch (err) {
+      console.error("Error creating warehouse:", err);
+      setError("Failed to create warehouse");
+    } finally {
+      setIsCreatingWarehouse(false);
+    }
+  };
+
+  const handleCreateContainer = async () => {
+    try {
+      setIsCreatingContainer(true);
+      setError("");
+
+      if (!newContainer.name.trim()) {
+        setError("Container name is required");
+        return;
+      }
+
+      if (!newContainer.warehouse_id) {
+        setError("Please select a warehouse");
+        return;
+      }
+
+      const response = await createContainer(
+        token,
+        newContainer.warehouse_id,
+        newContainer.name,
+        newContainer.description
+      );
+
+      if (response.code === "201" && response.data) {
+        setContainers((prev) => ({
+          ...prev,
+          [newContainer.warehouse_id]: [
+            ...(prev[newContainer.warehouse_id] || []),
+            response.data,
+          ],
+        }));
+        setNewContainer({ warehouse_id: "", name: "", description: "" });
+        setIsContainerDialogOpen(false);
+      } else {
+        setError(response.message || "Failed to create container");
+      }
+    } catch (err) {
+      console.error("Error creating container:", err);
+      setError("Failed to create container");
+    } finally {
+      setIsCreatingContainer(false);
+    }
+  };
+
+  const handleCreateRack = async () => {
+    try {
+      setIsCreatingRack(true);
+      setError("");
+
+      if (!newRack.name.trim()) {
+        setError("Rack name is required");
+        return;
+      }
+
+      if (!newRack.container_id) {
+        setError("Please select a container");
+        return;
+      }
+
+      const response = await createRack(
+        token,
+        newRack.container_id,
+        newRack.name,
+        newRack.description
+      );
+
+      if (response.code === "201" && response.data) {
+        setRacks((prev) => ({
+          ...prev,
+          [newRack.container_id]: [
+            ...(prev[newRack.container_id] || []),
+            response.data,
+          ],
+        }));
+        setNewRack({ container_id: "", name: "", description: "" });
+        setIsRackDialogOpen(false);
+      } else {
+        setError(response.message || "Failed to create rack");
+      }
+    } catch (err) {
+      console.error("Error creating rack:", err);
+      setError("Failed to create rack");
+    } finally {
+      setIsCreatingRack(false);
+    }
+  };
 
   const filteredWarehouses = useMemo(() => {
-    return mockWarehouses.filter(warehouse => {
-      const matchesSearch = warehouse.warehouse_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           warehouse.warehouse_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           warehouse.location.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesType = selectedType === 'all' || warehouse.warehouse_type === selectedType;
-      const matchesStatus = statusFilter === 'all' || warehouse.status === statusFilter;
-      
-      return matchesSearch && matchesType && matchesStatus;
-    });
-  }, [searchQuery, selectedType, statusFilter]);
+    return warehouses.filter((warehouse) =>
+      warehouse.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [warehouses, searchQuery]);
 
-  const handleCreateWarehouse = () => {
-    console.log('Create warehouse clicked');
-  };
+  // Calculate statistics
+  const totalWarehouses = warehouses.length;
+  const totalContainers = Object.values(containers).flat().length;
+  const totalRacks = Object.values(racks).flat().length;
 
-  const handleEditWarehouse = (warehouseId: number) => {
-    console.log('Edit warehouse:', warehouseId);
-  };
-
-  const handleDeleteWarehouse = (warehouseId: number) => {
-    console.log('Delete warehouse:', warehouseId);
-  };
-
-  const handleViewWarehouse = (warehouseId: number) => {
-    console.log('View warehouse:', warehouseId);
-  };
-
-  const getWarehouseTypeBadgeColor = (type: string) => {
-    switch (type) {
-      case 'GENERAL':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'GA_ONLY':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'NON_GA_ONLY':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      case 'SPECIAL':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-      case 'TEMPERATURE_CONTROLLED':
-        return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'inactive':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'under_maintenance':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
-
-  const getUtilizationLevel = (utilization: number, capacity: number) => {
-    const percentage = (utilization / capacity) * 100;
-    if (percentage >= 90) return 'danger';
-    if (percentage >= 70) return 'warning';
-    return 'normal';
-  };
-
-  const getUtilizationColor = (level: string) => {
-    switch (level) {
-      case 'danger':
-        return 'bg-red-500';
-      case 'warning':
-        return 'bg-yellow-500';
-      default:
-        return 'bg-green-500';
-    }
-  };
-
-  const totalCapacity = mockWarehouses.reduce((sum, w) => sum + w.capacity, 0);
-  const totalUtilization = mockWarehouses.reduce((sum, w) => sum + w.current_utilization, 0);
-  const avgUtilization = (totalUtilization / totalCapacity * 100).toFixed(1);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Warehouses</h1>
-          <p className="text-muted-foreground">Manage your warehouse locations and storage</p>
+          <p className="text-muted-foreground">
+            Manage your warehouse locations and storage
+          </p>
         </div>
-        <Button onClick={handleCreateWarehouse} className="gap-2">
-          <Plus size={16} />
-          Add Warehouse
-        </Button>
+        <div className="flex gap-2">
+          <Dialog
+            open={isWarehouseDialogOpen}
+            onOpenChange={setIsWarehouseDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus size={16} />
+                Add Warehouse
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Warehouse</DialogTitle>
+                <DialogDescription>
+                  Add a new warehouse to your inventory system
+                </DialogDescription>
+              </DialogHeader>
+
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded flex justify-between items-center mb-4">
+                  <span>{error}</span>
+                  <button onClick={() => setError("")}>
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Warehouse Name *</Label>
+                  <Input
+                    id="name"
+                    value={newWarehouse.name}
+                    onChange={(e) =>
+                      setNewWarehouse((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter warehouse name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={newWarehouse.description}
+                    onChange={(e) =>
+                      setNewWarehouse((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter warehouse description (optional)"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button
+                  onClick={handleCreateWarehouse}
+                  disabled={isCreatingWarehouse}>
+                  {isCreatingWarehouse ? "Creating..." : "Create Warehouse"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={isContainerDialogOpen}
+            onOpenChange={setIsContainerDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Plus size={16} />
+                Add Container
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Container</DialogTitle>
+                <DialogDescription>
+                  Add a new container to one of your warehouses
+                </DialogDescription>
+              </DialogHeader>
+
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded flex justify-between items-center mb-4">
+                  <span>{error}</span>
+                  <button onClick={() => setError("")}>
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="warehouse_id">Select Warehouse *</Label>
+                  <Select
+                    value={newContainer.warehouse_id}
+                    onValueChange={(value) =>
+                      setNewContainer((prev) => ({
+                        ...prev,
+                        warehouse_id: value,
+                      }))
+                    }>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a warehouse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((warehouse) => (
+                        <SelectItem key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="container-name">Container Name *</Label>
+                  <Input
+                    id="container-name"
+                    value={newContainer.name}
+                    onChange={(e) =>
+                      setNewContainer((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter container name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="container-description">Description</Label>
+                  <Textarea
+                    id="container-description"
+                    value={newContainer.description}
+                    onChange={(e) =>
+                      setNewContainer((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter container description (optional)"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button
+                  onClick={handleCreateContainer}
+                  disabled={isCreatingContainer}>
+                  {isCreatingContainer ? "Creating..." : "Create Container"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isRackDialogOpen} onOpenChange={setIsRackDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Plus size={16} />
+                Add Rack
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Rack</DialogTitle>
+                <DialogDescription>
+                  Add a new rack to one of your containers
+                </DialogDescription>
+              </DialogHeader>
+
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded flex justify-between items-center mb-4">
+                  <span>{error}</span>
+                  <button onClick={() => setError("")}>
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="warehouse-select">Select Warehouse</Label>
+                  <Select
+                    onValueChange={(warehouseId) => {
+                      setNewRack((prev) => ({ ...prev, container_id: "" }));
+                    }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a warehouse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((warehouse) => (
+                        <SelectItem key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="container_id">Select Container *</Label>
+                  <Select
+                    value={newRack.container_id}
+                    onValueChange={(value) =>
+                      setNewRack((prev) => ({ ...prev, container_id: value }))
+                    }>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a container" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(containers)
+                        .flat()
+                        .map((container) => (
+                          <SelectItem key={container.id} value={container.id}>
+                            {container.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rack-name">Rack Name *</Label>
+                  <Input
+                    id="rack-name"
+                    value={newRack.name}
+                    onChange={(e) =>
+                      setNewRack((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    placeholder="Enter rack name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rack-description">Description</Label>
+                  <Textarea
+                    id="rack-description"
+                    value={newRack.description}
+                    onChange={(e) =>
+                      setNewRack((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter rack description (optional)"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleCreateRack} disabled={isCreatingRack}>
+                  {isCreatingRack ? "Creating..." : "Create Rack"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -235,8 +607,10 @@ export default function WarehousesPage() {
                 <Warehouse className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Warehouses</p>
-                <p className="text-2xl font-bold">{mockWarehouses.length}</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Warehouses
+                </p>
+                <p className="text-2xl font-bold">{totalWarehouses}</p>
               </div>
             </div>
           </CardContent>
@@ -249,8 +623,8 @@ export default function WarehousesPage() {
                 <Package className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Capacity</p>
-                <p className="text-2xl font-bold">{totalCapacity.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Containers</p>
+                <p className="text-2xl font-bold">{totalContainers}</p>
               </div>
             </div>
           </CardContent>
@@ -260,11 +634,11 @@ export default function WarehousesPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Average Utilization</p>
-                <p className="text-2xl font-bold">{avgUtilization}%</p>
+                <p className="text-sm text-muted-foreground">Racks</p>
+                <p className="text-2xl font-bold">{totalRacks}</p>
               </div>
             </div>
           </CardContent>
@@ -277,17 +651,17 @@ export default function WarehousesPage() {
                 <AlertTriangle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">High Utilization</p>
-                <p className="text-2xl font-bold">
-                  {mockWarehouses.filter(w => (w.current_utilization / w.capacity) * 100 >= 70).length}
+                <p className="text-sm text-muted-foreground">
+                  Average Utilization
                 </p>
+                <p className="text-2xl font-bold">--</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Search */}
+      {/* Search */}
       <Card>
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -300,57 +674,26 @@ export default function WarehousesPage() {
                 icon={<Search size={16} />}
               />
             </div>
-            
-            <div>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
-              >
-                {warehouseTypes.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="under_maintenance">Under Maintenance</option>
-              </select>
-            </div>
-
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter size={14} />
-                More Filters
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Warehouses Grid */}
+      {/* Warehouses List */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredWarehouses.map((warehouse, index) => (
           <motion.div
-            key={warehouse.warehouse_id}
+            key={warehouse.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
+            transition={{ delay: index * 0.1 }}>
             <Card className="h-full hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">{warehouse.warehouse_name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{warehouse.warehouse_code}</p>
+                    <CardTitle className="text-lg">{warehouse.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      ID: {warehouse.id.substring(0, 8)}...
+                    </p>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -359,23 +702,26 @@ export default function WarehousesPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewWarehouse(warehouse.warehouse_id)}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          console.log("View details:", warehouse.id)
+                        }>
                         <Eye size={14} className="mr-2" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEditWarehouse(warehouse.warehouse_id)}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          console.log("Edit warehouse:", warehouse.id)
+                        }>
                         <Edit size={14} className="mr-2" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Settings size={14} className="mr-2" />
-                        Manage Racks
-                      </DropdownMenuItem>
                       <Separator className="my-1" />
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteWarehouse(warehouse.warehouse_id)}
-                        className="text-red-600"
-                      >
+                      <DropdownMenuItem
+                        onClick={() =>
+                          console.log("Delete warehouse:", warehouse.id)
+                        }
+                        className="text-red-600">
                         <Trash2 size={14} className="mr-2" />
                         Delete
                       </DropdownMenuItem>
@@ -385,55 +731,96 @@ export default function WarehousesPage() {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-4">
-                  {/* Location */}
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin size={14} className="text-muted-foreground" />
-                    <span>{warehouse.location}</span>
+                  {/* Description */}
+                  <div className="text-sm text-muted-foreground">
+                    {warehouse.description || "No description available"}
                   </div>
 
-                  {/* Type and Status */}
-                  <div className="flex gap-2">
-                    <Badge className={getWarehouseTypeBadgeColor(warehouse.warehouse_type)}>
-                      {warehouse.warehouse_type.replace('_', ' ')}
-                    </Badge>
-                    <Badge className={getStatusBadgeColor(warehouse.status)}>
-                      {warehouse.status.replace('_', ' ')}
-                    </Badge>
+                  {/* Date */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>
+                      Created:{" "}
+                      {new Date(warehouse.created_at).toLocaleDateString()}
+                    </span>
+                    <span>•</span>
+                    <span>
+                      Updated:{" "}
+                      {new Date(warehouse.updated_at).toLocaleDateString()}
+                    </span>
                   </div>
 
-                  {/* Utilization */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Utilization</span>
-                      <span>{warehouse.current_utilization} / {warehouse.capacity}</span>
-                    </div>
-                    <Progress 
-                      value={(warehouse.current_utilization / warehouse.capacity) * 100}
-                      className="h-2"
-                    />
-                    <div className="text-xs text-muted-foreground">
-                      {((warehouse.current_utilization / warehouse.capacity) * 100).toFixed(1)}% full
-                    </div>
-                  </div>
-
-                  {/* Racks Summary */}
+                  {/* Containers */}
                   <div className="pt-2 border-t">
                     <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="font-medium">Racks</span>
-                      <span>{warehouse.racks.length} racks</span>
+                      <span className="font-medium">Containers</span>
+                      <span>
+                        {containers[warehouse.id]?.length || 0} containers
+                      </span>
                     </div>
-                    <div className="space-y-1">
-                      {warehouse.racks.slice(0, 3).map((rack, rackIndex) => (
-                        <div key={rackIndex} className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">{rack.name}</span>
-                          <span>{rack.current_load}/{rack.capacity}</span>
-                        </div>
-                      ))}
-                      {warehouse.racks.length > 3 && (
-                        <div className="text-xs text-muted-foreground">
-                          +{warehouse.racks.length - 3} more racks
-                        </div>
-                      )}
+                    {containers[warehouse.id] &&
+                    containers[warehouse.id].length > 0 ? (
+                      <div className="space-y-2">
+                        {containers[warehouse.id]
+                          .slice(0, 3)
+                          .map((container) => (
+                            <div
+                              key={container.id}
+                              className="text-sm border p-2 rounded-md">
+                              <div className="font-medium">
+                                {container.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground mb-1">
+                                {racks[container.id]?.length || 0} racks
+                              </div>
+                              {racks[container.id] &&
+                                racks[container.id].length > 0 && (
+                                  <div className="pl-2 border-l-2 border-muted mt-1">
+                                    {racks[container.id]
+                                      .slice(0, 2)
+                                      .map((rack) => (
+                                        <div
+                                          key={rack.id}
+                                          className="text-xs text-muted-foreground">
+                                          {rack.name}
+                                        </div>
+                                      ))}
+                                    {racks[container.id].length > 2 && (
+                                      <div className="text-xs text-muted-foreground">
+                                        +{racks[container.id].length - 2} more
+                                        racks
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          ))}
+                        {containers[warehouse.id].length > 3 && (
+                          <div className="text-xs text-muted-foreground">
+                            +{containers[warehouse.id].length - 3} more
+                            containers
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground italic">
+                        No containers yet
+                      </div>
+                    )}
+                    <div className="mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-8 w-full"
+                        onClick={() => {
+                          setNewContainer((prev) => ({
+                            ...prev,
+                            warehouse_id: warehouse.id,
+                          }));
+                          setIsContainerDialogOpen(true);
+                        }}>
+                        <Plus size={12} className="mr-1" />
+                        Add Container
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -446,9 +833,20 @@ export default function WarehousesPage() {
       {filteredWarehouses.length === 0 && (
         <Card>
           <CardContent className="text-center py-8">
-            <Warehouse size={48} className="mx-auto text-muted-foreground mb-4" />
+            <Warehouse
+              size={48}
+              className="mx-auto text-muted-foreground mb-4"
+            />
             <h3 className="text-lg font-medium">No warehouses found</h3>
-            <p className="text-muted-foreground">Try adjusting your search or filters</p>
+            <p className="text-muted-foreground">
+              Try adjusting your search or create a new warehouse
+            </p>
+            <Button
+              className="mt-4"
+              onClick={() => setIsWarehouseDialogOpen(true)}>
+              <Plus size={16} className="mr-2" />
+              Create Warehouse
+            </Button>
           </CardContent>
         </Card>
       )}
