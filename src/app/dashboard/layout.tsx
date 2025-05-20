@@ -25,6 +25,7 @@ import {
   X,
   Bell,
   HelpCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -101,7 +102,7 @@ export default function DashboardLayout({
       icon: <LayoutDashboard size={20} />,
       description: "Overview of inventory system",
     },
-        {
+    {
       name: "Stock In",
       path: "/dashboard/stock-in",
       icon: <PackagePlus size={20} />,
@@ -113,7 +114,12 @@ export default function DashboardLayout({
       icon: <PackageCheck size={20} />,
       description: "Process items leaving inventory",
     },
-
+    {
+      name: "Defects", // Tambahkan menu Defects
+      path: "/dashboard/defects",
+      icon: <AlertTriangle size={20} />, // Gunakan icon yang sesuai
+      description: "Manage defective items",
+    },
     {
       name: "Products",
       path: "/dashboard/products",
@@ -138,12 +144,12 @@ export default function DashboardLayout({
       icon: <Truck size={20} />,
       description: "Manage vendor relationships",
     },
-    // {
-    //   name: "Reports",
-    //   path: "/dashboard/reports",
-    //   icon: <BarChart3 size={20} />,
-    //   description: "View inventory analytics",
-    // },
+    {
+      name: "Reports", // Tampilkan menu Reports
+      path: "/dashboard/reports",
+      icon: <BarChart3 size={20} />,
+      description: "View inventory analytics",
+    },
   ];
 
   if (!isLoaded) {
