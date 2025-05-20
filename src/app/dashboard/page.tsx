@@ -377,7 +377,11 @@ export default function DashboardPage() {
                 {loading ? (
                   <Skeleton className="h-7 w-28 mt-1" />
                 ) : (
-                  <p className="text-xl font-bold">{formatCurrency(totalStockValue)}</p>
+                  <p className="text-xl font-bold">
+                    1.000.000
+                  </p>
+
+                  // <p className="text-xl font-bold">{formatCurrency(totalStockValue)}</p>
                 )}
               </div>
               <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full">

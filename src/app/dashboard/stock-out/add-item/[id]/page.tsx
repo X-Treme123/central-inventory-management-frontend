@@ -1,3 +1,4 @@
+// dashboard/stock-out/add-item/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -38,6 +39,13 @@ export default function AddStockOutItemPage() {
   const [unitId, setUnitId] = useState("");
   const [quantity, setQuantity] = useState<number>(1);
   const [pricePerUnit, setPricePerUnit] = useState<number>(0);
+  
+  // Tambahan state untuk unit konversi
+  const [packsPerBox, setPacksPerBox] = useState<number | undefined>(undefined);
+  const [piecesPerPack, setPiecesPerPack] = useState<number | undefined>(undefined);
+  const [showPacksPerBox, setShowPacksPerBox] = useState(false);
+  const [showPiecesPerPack, setShowPiecesPerPack] = useState(false);
+  
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [totalPieces, setTotalPieces] = useState<number>(0);
   const [availableStock, setAvailableStock] = useState<number>(0);
@@ -125,6 +133,10 @@ export default function AddStockOutItemPage() {
         // Reset unit selection
         setUnitId("");
         setCurrentUnit(null);
+        setShowPacksPerBox(false);
+        setShowPiecesPerPack(false);
+        setPacksPerBox(undefined);
+        setPiecesPerPack(undefined);
 
         // Mendapatkan konversi unit untuk produk
         const conversionsRes = await getUnitConversionsByProduct(
@@ -152,13 +164,35 @@ export default function AddStockOutItemPage() {
     fetchProductDetails();
   }, [token, productId, products, currentStock]);
 
-  // Update current unit when unit is selected
+  // Update current unit when unit is selected and show appropriate conversion fields
   useEffect(() => {
     if (unitId) {
       const unit = units.find((u) => u.id === unitId) || null;
       setCurrentUnit(unit);
+      
+      if (unit) {
+        const unitNameLower = unit.name.toLowerCase();
+        
+        // Tampilkan field packs_per_box jika unit adalah box/dus
+        setShowPacksPerBox(
+          unitNameLower.includes("box") || unitNameLower.includes("dus")
+        );
+        
+        // Tampilkan field pieces_per_pack jika unit adalah pack atau box/dus
+        setShowPiecesPerPack(
+          unitNameLower.includes("pack") || 
+          unitNameLower.includes("box") || 
+          unitNameLower.includes("dus")
+        );
+        
+        // Reset nilai konversi jika unit berubah
+        if (!showPacksPerBox) setPacksPerBox(undefined);
+        if (!showPiecesPerPack) setPiecesPerPack(undefined);
+      }
     } else {
       setCurrentUnit(null);
+      setShowPacksPerBox(false);
+      setShowPiecesPerPack(false);
     }
   }, [unitId, units]);
 
@@ -171,30 +205,42 @@ export default function AddStockOutItemPage() {
     }
 
     let totalPcs = 0;
-
-    // Find conversion to piece
-    const unitToBase = unitConversions.find(
-      (c) =>
-        c.from_unit_id === unitId &&
-        c.to_unit_id === currentProduct.base_unit_id
-    );
-
-    if (unitToBase) {
-      // If conversion found, use it
-      totalPcs = quantity * unitToBase.conversion_factor;
+    
+    // Hitung total pieces berdasarkan unit type dan faktor konversi
+    const unitNameLower = currentUnit.name.toLowerCase();
+    
+    if ((unitNameLower.includes("box") || unitNameLower.includes("dus")) && packsPerBox && piecesPerPack) {
+      // Jika unit adalah box/dus dan parameter konversi tersedia
+      totalPcs = quantity * packsPerBox * piecesPerPack;
+    } else if (unitNameLower.includes("pack") && piecesPerPack) {
+      // Jika unit adalah pack dan parameter konversi tersedia
+      totalPcs = quantity * piecesPerPack;
     } else if (unitId === currentProduct.base_unit_id) {
-      // If unit is the base unit, total is just quantity
+      // Jika unit adalah base unit (pieces), total adalah quantity
       totalPcs = quantity;
     } else {
-      // No direct conversion, try to find through other units
-      // This is a simplified approach, a more robust solution might be needed
-      const sameFromConversions = unitConversions.filter(
-        (c) => c.from_unit_id === unitId
+      // Coba gunakan konversi unit dari database
+      
+      // Find conversion to piece
+      const unitToBase = unitConversions.find(
+        (c) =>
+          c.from_unit_id === unitId &&
+          c.to_unit_id === currentProduct.base_unit_id
       );
-      if (sameFromConversions.length > 0) {
-        // Find any conversion that leads to the base unit
-        const anyConversion = sameFromConversions[0];
-        totalPcs = quantity * anyConversion.conversion_factor;
+
+      if (unitToBase) {
+        // If conversion found, use it
+        totalPcs = quantity * unitToBase.conversion_factor;
+      } else {
+        // No direct conversion, try to find through other units
+        const sameFromConversions = unitConversions.filter(
+          (c) => c.from_unit_id === unitId
+        );
+        if (sameFromConversions.length > 0) {
+          // Find any conversion that leads to the base unit
+          const anyConversion = sameFromConversions[0];
+          totalPcs = quantity * anyConversion.conversion_factor;
+        }
       }
     }
 
@@ -208,6 +254,8 @@ export default function AddStockOutItemPage() {
     currentProduct,
     currentUnit,
     unitId,
+    packsPerBox,
+    piecesPerPack,
     unitConversions,
   ]);
 
@@ -228,17 +276,31 @@ export default function AddStockOutItemPage() {
       return;
     }
 
+    // Validasi input konversi jika diperlukan
+    const unitNameLower = currentUnit?.name.toLowerCase() || "";
+    if ((unitNameLower.includes("box") || unitNameLower.includes("dus")) && (!packsPerBox || !piecesPerPack)) {
+      setError("Untuk unit box/dus, jumlah pack per box dan piece per pack harus diisi");
+      return;
+    } else if (unitNameLower.includes("pack") && !piecesPerPack) {
+      setError("Untuk unit pack, jumlah piece per pack harus diisi");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
       setSuccessMessage(null);
 
-      const response = await addStockOutItem(token, id, {
+      const requestData = {
         product_id: productId,
         unit_id: unitId,
         quantity,
         price_per_unit: pricePerUnit,
-      });
+        packs_per_box: packsPerBox,
+        pieces_per_pack: piecesPerPack
+      };
+
+      const response = await addStockOutItem(token, id as string, requestData);
 
       if (response && response.data) {
         setSuccessMessage("Item berhasil ditambahkan ke Stock Out request");
@@ -247,6 +309,8 @@ export default function AddStockOutItemPage() {
         setProductId("");
         setUnitId("");
         setQuantity(1);
+        setPacksPerBox(undefined);
+        setPiecesPerPack(undefined);
         setTotalPieces(0);
         setPricePerUnit(0);
         setTotalAmount(0);
@@ -411,6 +475,40 @@ export default function AddStockOutItemPage() {
                 />
               </div>
 
+              {/* Tampilkan field packs_per_box jika diperlukan */}
+              {showPacksPerBox && (
+                <div className="space-y-2">
+                  <Label htmlFor="packsPerBox">
+                    Pack per Box <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="packsPerBox"
+                    type="number"
+                    min="1"
+                    value={packsPerBox || ""}
+                    onChange={(e) => setPacksPerBox(parseInt(e.target.value) || undefined)}
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Tampilkan field pieces_per_pack jika diperlukan */}
+              {showPiecesPerPack && (
+                <div className="space-y-2">
+                  <Label htmlFor="piecesPerPack">
+                    Pieces per Pack <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="piecesPerPack"
+                    type="number"
+                    min="1"
+                    value={piecesPerPack || ""}
+                    onChange={(e) => setPiecesPerPack(parseInt(e.target.value) || undefined)}
+                    required
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="pricePerUnit">
                   Harga per Unit <span className="text-red-500">*</span>
@@ -491,7 +589,10 @@ export default function AddStockOutItemPage() {
                 <Button
                   type="submit"
                   disabled={
-                    isLoading || (productId && totalPieces > availableStock)
+                    isLoading || 
+                    (productId && totalPieces > availableStock) || 
+                    (showPacksPerBox && !packsPerBox) ||
+                    (showPiecesPerPack && !piecesPerPack)
                   }
                   className="gap-2">
                   {isLoading ? (

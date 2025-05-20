@@ -692,6 +692,8 @@ export const addStockOutItem = async (
     unit_id: string;
     quantity: number;
     price_per_unit: number;
+    packs_per_box?: number; // Tambahan parameter
+    pieces_per_pack?: number; // Tambahan parameter
   }
 ): Promise<ApiResponse<StockOutItem>> => {
   return fetchWithAuth(
