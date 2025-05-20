@@ -1,0 +1,1 @@
+# central-inventory-management-frontend
