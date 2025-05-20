@@ -1,6 +1,6 @@
 // lib/api/types.ts
 
-// Authentication Types
+// Authentication types
 export interface LoginResponse {
   code: string;
   messages?: string;
@@ -15,249 +15,299 @@ export interface LoginResponse {
   };
 }
 
-// Product Types
-export interface Product {
-  product_id: number;
-  category_id: number;
-  product_name: string;
-  description: string | null;
-  status: 'active' | 'inactive';
-  created_at: string;
-  updated_at: string;
-  category_name?: string;
-  units?: ProductUnit[];
+// Common types
+export interface ApiResponse<T> {
+  code: string;
+  message: string;
+  data?: T;
+  error?: string;
 }
 
-export interface ProductUnit {
-  product_unit_id: number;
-  product_id: number;
-  unit_id: number;
-  is_base_unit: number; // 0 or 1
-  conversion_factor: number;
-  created_at: string;
-  updated_at: string;
-  unit_name?: string;
-  unit_code?: string;
-}
-
-export interface Unit {
-  unit_id: number;
-  unit_name: string;
-  unit_code: string;
-  unit_type: 'PIECE' | 'PACK';
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-// Warehouse Types
+// Warehouse types
 export interface Warehouse {
-  warehouse_id: number;
-  warehouse_name: string;
-  location: string;
-  capacity: number | null;
-  status: 'active' | 'inactive';
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Container {
+  id: string;
+  warehouse_id: string;
+  name: string;
+  description: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface Rack {
-  rack_id: number;
-  warehouse_id: number;
-  rack_name: string;
-  rack_code: string;
-  rack_barcode: string;
-  capacity: number | null;
-  status: 'active' | 'inactive';
-  created_at: string;
-  updated_at: string;
-  warehouse_name?: string;
-}
-
-// Inventory Types
-export interface InventoryItem {
-  inventory_id: number;
-  product_id: number;
-  product_unit_id: number;
-  warehouse_id: number;
-  rack_id: number;
-  quantity: string | number;
-  created_at: string;
-  updated_at: string;
-  product_name: string;
-  category_name: string;
-  category_type: 'GA' | 'NON-GA';
-  unit_name: string;
-  unit_code: string;
-  warehouse_name: string;
-  rack_name: string;
-  rack_code: string;
-  barcode_count: number;
-}
-
-export interface BarcodeItem {
-  barcode_id: number;
-  product_id: number;
-  product_unit_id: number;
-  warehouse_id: number;
-  rack_id: number;
-  barcode: string;
-  status: 'available' | 'issued' | 'defect' | 'transit';
-  created_at: string;
-  updated_at: string;
-  product_name: string;
+  id: string;
+  container_id: string;
+  name: string;
   description: string | null;
-  unit_name: string;
-  unit_code: string;
-  warehouse_name: string;
-  rack_name: string;
-  barcode_type?: string;
-}
-
-// Transaction Types
-export interface Transaction {
-  transaction_id: number;
-  transaction_type: 'stock_in' | 'stock_out' | 'transfer';
-  transaction_reason: 'direct_request' | 'incident' | 'regular';
-  reference_number: string | null;
-  notes: string | null;
-  user_id: number | null;
-  transaction_date: string;
-  created_at: string;
-  updated_at: string;
-  supplier_id: number | null;
-}
-
-export interface TransactionDetail {
-  detail_id: number;
-  transaction_id: number;
-  product_id: number;
-  product_unit_id: number;
-  warehouse_id: number;
-  rack_id: number;
-  quantity: number;
-  source_warehouse_id: number | null;
-  source_rack_id: number | null;
-  destination_warehouse_id: number | null;
-  destination_rack_id: number | null;
-  is_defect: number; // 0 or 1
-  defect_reason: 'factory' | 'shipping' | 'other' | null;
-  is_transit: number; // 0 or 1
-  transit_id: number | null;
   created_at: string;
   updated_at: string;
 }
 
-// Stock-In Types
-export interface StockInItem {
-  product_id: number;
-  product_unit_id: number;
-  warehouse_id: number;
-  rack_id: number;
-  quantity: number;
-  is_defect: boolean;
-  defect_reason?: 'factory' | 'shipping' | 'other';
-  is_transit: boolean;
-  destination_warehouse_id?: number;
-  destination_rack_id?: number;
-  is_partial_defect?: boolean;
-  parent_unit_id?: number;
-  parent_quantity?: number;
-}
-
-export interface StockInRequest {
-  reference_number: string;
-  notes?: string;
-  user_id: number;
-  supplier_id?: number;
-  items: StockInItem[];
-}
-
-export interface StockInResponse {
-  code: string;
-  message: string;
-  data: {
-    transaction_id: number;
-    transaction_type: 'stock_in';
-  };
-}
-
-export interface StockOutResponse {
-  code: string;
-  message: string;
-  data: {
-    transaction_id: number;
-    product_name?: string;
-    barcode?: string;
-    unit_type?: 'PACK' | 'PIECE';
-    unit_name?: string;
-    unit_code?: string;
-    transaction_type?: 'stock_out';
-    transaction_reason?: 'direct_request' | 'incident' | 'regular';
-    barcodes_processed?: number;
-  };
-}
-
-export interface DefectProduct {
-  defect_id: number;
-  product_id: number;
-  product_unit_id: number;
-  barcode_id: number | null;
-  quantity: string | number;
-  defect_reason: 'factory' | 'shipping' | 'other';
-  parent_unit_id: number | null;
-  parent_quantity: number | null;
-  is_partial: number; // 0 or 1
-  notes: string | null;
-  reported_date: string;
-  created_at: string;
-  updated_at: string;
-  product_name: string;
-  unit_name: string;
-  unit_code: string;
-  parent_unit_name: string | null;
-  parent_unit_barcode: string | null;
-}
-
-export interface TransitProduct {
-  transit_id: number;
-  product_id: number;
-  product_unit_id: number;
-  quantity: string | number;
-  source_warehouse_id: number | null;
-  destination_warehouse_id: number | null;
-  status: 'in_transit' | 'completed' | 'cancelled';
-  transit_reason: 'category_based' | 'transfer_request' | 'other';
-  transit_date: string;
-  estimated_arrival: string | null;
-  actual_arrival: string | null;
-  created_at: string;
-  updated_at: string;
-  product_name: string;
-  unit_name: string;
-  unit_code: string;
-  source_warehouse_name: string | null;
-  destination_warehouse_name: string | null;
-  barcode_count: number;
-}
-
-export interface Category {
-  category_id: string,
-  category_name: string,
-  category_type?: 'GA' | 'NON-GA',
-  description: string,
-  created_at: string,
-  updated_at: string,
-}
-
+// Supplier types
 export interface Supplier {
-  supplier_id: number,
-  supplier_name: string,
-  contact_person: string,
-  email: string,
-  phone: string,
-  address: string,
-  status: 'active' | 'inactive',
-  created_at: string,
-  upadated_at: string,
+  id: string;
+  name: string;
+  contact_person: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Category types
+export interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Unit types
+export interface Unit {
+  id: string;
+  name: string;
+  abbreviation: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Department types
+export interface Department {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Product types
+export interface Product {
+  id: string;
+  part_number: string;
+  name: string;
+  description: string | null;
+  category_id: string;
+  base_unit_id: string;
+  price: number;
+  created_at: string;
+  updated_at: string;
+  category_name?: string;
+  base_unit_name?: string;
+}
+
+export interface UnitConversion {
+  id: string;
+  product_id: string;
+  from_unit_id: string;
+  to_unit_id: string;
+  conversion_factor: number;
+  created_at: string;
+  updated_at: string;
+  from_unit_name?: string;
+  from_unit_abbr?: string;
+  to_unit_name?: string;
+  to_unit_abbr?: string;
+}
+
+// Stock In types
+export interface StockIn {
+  id: string;
+  invoice_code: string;
+  packing_list_number: string | null;
+  supplier_id: string;
+  received_by: number;
+  receipt_date: string;
+  notes: string | null;
+  status: 'pending' | 'completed' | 'rejected';
+  created_at: string;
+  updated_at: string;
+  supplier_name?: string;
+  received_by_name?: string;
+  items?: StockInItem[];
+}
+
+export interface StockInItem {
+  id: string;
+  stock_in_id: string;
+  product_id: string;
+  unit_id: string;
+  quantity: number;
+  packs_per_box: number | null;
+  pieces_per_pack: number | null;
+  total_pieces: number;
+  price_per_unit: number;
+  total_amount: number;
+  warehouse_id: string;
+  container_id: string;
+  rack_id: string;
+  checked_by: number;
+  created_at: string;
+  updated_at: string;
+  product_name?: string;
+  part_number?: string;
+  unit_name?: string;
+  unit_abbreviation?: string;
+  warehouse_name?: string;
+  container_name?: string;
+  rack_name?: string;
+  checked_by_name?: string;
+  barcode_count?: number;
+}
+
+export interface ProductBarcode {
+  id: string;
+  stock_in_item_id: string;
+  barcode: string;
+  unit_type: 'piece' | 'pack' | 'box';
+  is_defect: boolean;
+  defect_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Defect types
+export interface DefectItem {
+  id: string;
+  stock_in_item_id: string;
+  unit_id: string;
+  quantity: number;
+  defect_date: string;
+  defect_type: string;
+  defect_description: string | null;
+  reported_by: number;
+  status: 'pending' | 'returned' | 'resolved';
+  created_at: string;
+  updated_at: string;
+  product_name?: string;
+  part_number?: string;
+  unit_name?: string;
+  reported_by_name?: string;
+  warehouse_name?: string;
+  container_name?: string;
+  rack_name?: string;
+  barcodes?: ProductBarcode[];
+}
+
+// Stock Out types
+export interface StockOut {
+  id: string;
+  reference_number: string;
+  request_date: string;
+  department_id: string;
+  requestor_name: string;
+  requestor_id: number;
+  approved_by?: number;
+  approval_date?: string;
+  notes: string | null;
+  status: 'pending' | 'approved' | 'completed' | 'rejected';
+  created_at: string;
+  updated_at: string;
+  department_name?: string;
+  requestor_username?: string;
+  approver_username?: string;
+  items?: StockOutItem[];
+}
+
+export interface StockOutItem {
+  id: string;
+  stock_out_id: string;
+  product_id: string;
+  unit_id: string;
+  quantity: number;
+  total_pieces: number;
+  price_per_unit: number;
+  total_amount: number;
+  remaining_stock?: number;
+  created_at: string;
+  updated_at: string;
+  product_name?: string;
+  part_number?: string;
+  unit_name?: string;
+  unit_abbreviation?: string;
+  barcode_count?: number;
+}
+
+export interface StockOutBarcode {
+  id: string;
+  stock_out_item_id: string;
+  barcode_id: string;
+  created_at: string;
+}
+
+// Stock Report types
+export interface CurrentStock {
+  id: string;
+  product_id: string;
+  warehouse_id: string;
+  container_id: string;
+  rack_id: string;
+  total_pieces: number;
+  total_amount: number;
+  last_updated: string;
+  created_at: string;
+  updated_at: string;
+  product_name?: string;
+  part_number?: string;
+  category_name?: string;
+  warehouse_name?: string;
+  container_name?: string;
+  rack_name?: string;
+  base_unit_name?: string;
+}
+
+export interface StockHistory {
+  id: string;
+  product_id: string;
+  transaction_type: 'stock_in' | 'stock_out' | 'defect' | 'adjustment';
+  reference_id: string;
+  quantity: number;
+  unit_id: string;
+  total_pieces: number;
+  previous_stock: number;
+  current_stock: number;
+  warehouse_id: string;
+  container_id: string;
+  rack_id: string;
+  user_id: number;
+  transaction_date: string;
+  notes: string | null;
+  created_at: string;
+  product_name?: string;
+  part_number?: string;
+  unit_name?: string;
+  warehouse_name?: string;
+  container_name?: string;
+  rack_name?: string;
+  user_name?: string;
+}
+
+export interface MonthlyStockReport {
+  id: string;
+  product_id: string;
+  year: number;
+  month: number;
+  opening_qty: number;
+  opening_amount: number;
+  incoming_qty: number;
+  incoming_amount: number;
+  outgoing_qty: number;
+  outgoing_amount: number;
+  defect_qty: number;
+  defect_amount: number;
+  closing_qty: number;
+  closing_amount: number;
+  created_at: string;
+  updated_at: string;
+  product_name?: string;
+  part_number?: string;
+  category_name?: string;
 }
