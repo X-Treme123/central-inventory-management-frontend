@@ -252,24 +252,24 @@ export default function DashboardLayout({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    className="absolute right-1 mt-2 w-70 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="p-2 divide-y divide-gray-100 dark:divide-gray-700">
-                      <div className="px-4 py-3">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                      <div className="px-1 py-3">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 font-medium pb-2">
                           {user?.name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {user?.email}
+                          {user?.divisi}
                         </p>
                       </div>
                       <div className="py-1">
                         <Link
                           href="/dashboard/profile"
-                          className="group flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                          className="group flex items-center px-1 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
                           Profile Settings
                         </Link>
                         <button
-                          className="w-full text-left group flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
+                          className="w-full text-left group flex items-center px-1 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
                           onClick={() => {
                             setIsUserMenuOpen(false);
                             logout();

@@ -9,7 +9,7 @@ export interface LoginResponse {
   user?: {
     id: number;
     name: string;
-    email: string;
+    username: string;
     divisi: string;
     avatar?: string;
   };

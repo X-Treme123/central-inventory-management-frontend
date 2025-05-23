@@ -42,13 +42,13 @@ import {
 //=============================================================================
 
 export const loginUser = async (
-  email: string,
+  username: string,
   password: string
 ): Promise<LoginResponse> => {
   try {
     const response = await fetchWithAuth(AUTH_ENDPOINTS.LOGIN, {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
 
     // Check if response is in the expected format
