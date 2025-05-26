@@ -34,7 +34,13 @@ import {
   StockOutItem,
   CurrentStock,
   StockHistory,
-  MonthlyStockReport
+  MonthlyStockReport,
+  CreateProductWithBarcodeForm,
+  BarcodeScanResponse,
+  AddStockInItemByBarcodeForm,
+  StockOutScanResponse,
+  BarcodeStockResponse,
+  BarcodeScan
 } from "./types";
 
 //=============================================================================
@@ -403,6 +409,12 @@ export const createProduct = async (
     category_id: string;
     base_unit_id: string;
     price: number;
+    // Barcode fields - optional
+    piece_barcode?: string;
+    pack_barcode?: string;
+    box_barcode?: string;
+    pieces_per_pack?: number;
+    packs_per_box?: number;
   }
 ): Promise<ApiResponse<Product>> => {
   return fetchWithAuth(
@@ -411,6 +423,104 @@ export const createProduct = async (
       method: "POST",
       body: JSON.stringify(data),
     },
+    token
+  );
+};
+
+export const createProductWithBarcode = async (
+  token: string,
+  data: CreateProductWithBarcodeForm
+): Promise<ApiResponse<Product>> => {
+  return fetchWithAuth(
+    PRODUCT_ENDPOINTS.BASE,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+    token
+  );
+};
+
+// Service untuk scan barcode dan mendapatkan product info
+export const scanBarcode = async (
+  token: string,
+  barcode: string
+): Promise<ApiResponse<BarcodeScanResponse>> => {
+  try {
+    console.log("Scanning barcode for product info:", barcode); // Debug log
+    
+    const response = await fetchWithAuth(
+      "/product/scan", // Product scan endpoint
+      {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ barcode: barcode.trim() }),
+      },
+      token
+    );
+
+    console.log("Product scan response:", response); // Debug log
+    return response;
+  } catch (error: any) {
+    console.error("Scan barcode error:", error);
+    
+    if (error.response?.status === 404) {
+      throw new Error("Product not found for this barcode");
+    }
+    
+    throw new Error(error.message || "Failed to scan barcode");
+  }
+};
+
+export const updateProductBarcodes = async (
+  token: string,
+  productId: string,
+  data: {
+    piece_barcode?: string;
+    pack_barcode?: string;
+    box_barcode?: string;
+  }
+): Promise<ApiResponse<{
+  id: string;
+  piece_barcode: string | null;
+  pack_barcode: string | null;
+  box_barcode: string | null;
+}>> => {
+  return fetchWithAuth(
+    `/product/${productId}/barcodes`,
+    {
+      method: "PUT",
+      body: JSON.stringify(data),
+    },
+    token
+  );
+};
+
+export const debugBarcodeConflicts = async (
+  token: string
+): Promise<ApiResponse<{
+  total_products_with_barcodes: number;
+  products: Array<{
+    id: string;
+    part_number: string;
+    name: string;
+    piece_barcode: string | null;
+    pack_barcode: string | null;
+    box_barcode: string | null;
+    created_at: string;
+  }>;
+  duplicate_barcodes: Array<{
+    barcode: string;
+    count: number;
+    products: string;
+  }>;
+  has_conflicts: boolean;
+}>> => {
+  return fetchWithAuth(
+    "/product/debug/barcodes",
+    {},
     token
   );
 };
@@ -525,7 +635,7 @@ export const createStockIn = async (
     packing_list_number?: string;
     supplier_id: string;
     receipt_date: string;
-    notes?: string;
+    // notes sekarang optional atau bisa dihapus sesuai kebutuhan
   }
 ): Promise<ApiResponse<StockIn>> => {
   return fetchWithAuth(
@@ -555,6 +665,21 @@ export const addStockInItem = async (
 ): Promise<ApiResponse<StockInItem>> => {
   return fetchWithAuth(
     STOCK_IN_ENDPOINTS.ITEMS(stockInId),
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+    token
+  );
+};
+
+export const addStockInItemByBarcode = async (
+  token: string,
+  stockInId: string,
+  data: AddStockInItemByBarcodeForm
+): Promise<ApiResponse<StockInItem>> => {
+  return fetchWithAuth(
+    STOCK_IN_ENDPOINTS.ITEMS_SCAN(stockInId),
     {
       method: "POST",
       body: JSON.stringify(data),
@@ -674,14 +799,89 @@ export const createStockOut = async (
     notes?: string;
   }
 ): Promise<ApiResponse<StockOut>> => {
+  try {
+    const response = await fetchWithAuth(
+      STOCK_OUT_ENDPOINTS.BASE,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Create stock out error:", error);
+    throw error;
+  }
+};
+
+export const addStockOutItemByBarcode = async (
+  token: string,
+  stockOutId: string,
+  data: {
+    barcode: string;
+    quantity: number;
+    price_per_unit: number;
+  }
+): Promise<ApiResponse<StockOutItem>> => {
   return fetchWithAuth(
-    STOCK_OUT_ENDPOINTS.BASE,
+    `${STOCK_OUT_ENDPOINTS.BASE}/${stockOutId}/items/scan`,
     {
       method: "POST",
       body: JSON.stringify(data),
     },
     token
   );
+};
+
+export const scanBarcodeForStockOut = async (
+  token: string,
+  barcode: string,
+  quantity: number = 1
+): Promise<ApiResponse<StockOutScanResponse>> => {
+  try {
+    console.log("Scanning barcode:", { barcode, quantity }); // Debug log
+    
+    const response = await fetchWithAuth(
+      STOCK_OUT_ENDPOINTS.SCAN,
+      {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          barcode: barcode.trim(), 
+          quantity: Number(quantity) 
+        }),
+      },
+      token
+    );
+
+    console.log("Scan response:", response); // Debug log
+    return response;
+  } catch (error: any) {
+    console.error("Scan barcode for stock out error:", error);
+    
+    // Better error handling
+    if (error.response) {
+      // Server responded with error status
+      const errorData = error.response.data || error.response;
+      console.error("Server error response:", errorData);
+      
+      // If error has specific format, preserve it
+      if (errorData.message) {
+        throw new Error(JSON.stringify(errorData));
+      }
+    }
+    
+    // If it's already a formatted error, pass it through
+    if (error.message) {
+      throw error;
+    }
+    
+    // Generic error
+    throw new Error("Failed to process stock out scan");
+  }
 };
 
 export const addStockOutItem = async (
@@ -692,57 +892,233 @@ export const addStockOutItem = async (
     unit_id: string;
     quantity: number;
     price_per_unit: number;
-    packs_per_box?: number; // Tambahan parameter
-    pieces_per_pack?: number; // Tambahan parameter
+    packs_per_box?: number;
+    pieces_per_pack?: number;
   }
 ): Promise<ApiResponse<StockOutItem>> => {
-  return fetchWithAuth(
-    STOCK_OUT_ENDPOINTS.ITEMS(stockOutId),
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-    token
-  );
+  try {
+    const response = await fetchWithAuth(
+      STOCK_OUT_ENDPOINTS.ITEMS(stockOutId),
+      {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Add stock out item error:", error);
+    throw error;
+  }
+};
+
+export const getStockByBarcode = async (
+  token: string,
+  barcode: string
+): Promise<ApiResponse<BarcodeStockResponse>> => {
+  try {
+    console.log("Checking stock for barcode:", barcode); // Debug log
+    
+    const response = await fetchWithAuth(
+      STOCK_OUT_ENDPOINTS.STOCK_CHECK(barcode.trim()),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+      token
+    );
+
+    console.log("Stock check response:", response); // Debug log
+    return response;
+  } catch (error: any) {
+    console.error("Get stock by barcode error:", error);
+    
+    if (error.response?.status === 404) {
+      throw new Error("Product tidak ditemukan untuk barcode ini");
+    }
+    
+    throw new Error(error.message || "Failed to check stock");
+  }
+};
+
+export const getScanHistory = async (
+  token: string,
+  params?: {
+    product_id?: string;
+    barcode?: string;
+    user_id?: string;
+    scan_type?: 'stock_out' | 'stock_in' | 'check_stock';
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<ApiResponse<{
+  scans: BarcodeScan[];
+  pagination: {
+    total_count: number;
+    limit: number;
+    offset: number;
+    has_more: boolean;
+  };
+}>> => {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+
+    const response = await fetchWithAuth(
+      `${STOCK_OUT_ENDPOINTS.SCAN_HISTORY}?${queryParams.toString()}`,
+      {},
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Get scan history error:", error);
+    throw error;
+  }
+};
+
+export const testStockOutEndpoint = async (token: string): Promise<boolean> => {
+  try {
+    console.log("Testing stock out endpoint connectivity...");
+    
+    // Simple test - get all stock out (should work even if empty)
+    await getAllStockOut(token);
+    console.log("Stock out endpoint test: SUCCESS");
+    return true;
+  } catch (error) {
+    console.error("Stock out endpoint test: FAILED", error);
+    return false;
+  }
 };
 
 export const approveStockOut = async (
   token: string,
   id: string
 ): Promise<ApiResponse<void>> => {
-  return fetchWithAuth(
-    STOCK_OUT_ENDPOINTS.APPROVE(id),
-    {
-      method: "PUT",
-    },
-    token
-  );
+  try {
+    const response = await fetchWithAuth(
+      STOCK_OUT_ENDPOINTS.APPROVE(id),
+      {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Approve stock out error:", error);
+    throw error;
+  }
 };
 
 export const completeStockOut = async (
   token: string,
   id: string
 ): Promise<ApiResponse<void>> => {
-  return fetchWithAuth(
-    STOCK_OUT_ENDPOINTS.COMPLETE(id),
-    {
-      method: "PUT",
-    },
-    token
-  );
+  try {
+    const response = await fetchWithAuth(
+      STOCK_OUT_ENDPOINTS.COMPLETE(id),
+      {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Complete stock out error:", error);
+    throw error;
+  }
 };
 
+// Data retrieval functions
 export const getAllStockOut = async (
   token: string
 ): Promise<ApiResponse<StockOut[]>> => {
-  return fetchWithAuth(STOCK_OUT_ENDPOINTS.BASE, {}, token);
+  try {
+    const response = await fetchWithAuth(STOCK_OUT_ENDPOINTS.BASE, {}, token);
+    return response;
+  } catch (error) {
+    console.error("Get all stock out error:", error);
+    throw error;
+  }
 };
 
 export const getStockOutById = async (
   token: string,
   id: string
 ): Promise<ApiResponse<StockOut>> => {
-  return fetchWithAuth(STOCK_OUT_ENDPOINTS.DETAIL(id), {}, token);
+  try {
+    const response = await fetchWithAuth(STOCK_OUT_ENDPOINTS.DETAIL(id), {}, token);
+    return response;
+  } catch (error) {
+    console.error("Get stock out by id error:", error);
+    throw error;
+  }
+};
+
+// Utility functions untuk reporting dan analytics
+export const getStockOutSummary = async (
+  token: string,
+  filters?: {
+    start_date?: string;
+    end_date?: string;
+    department_id?: string;
+    status?: string;
+  }
+): Promise<ApiResponse<{
+  total_requests: number;
+  total_items: number;
+  total_pieces: number;
+  total_value: number;
+  by_status: Record<string, number>;
+  by_department: Record<string, number>;
+}>> => {
+  const params = new URLSearchParams();
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.append(key, value);
+    });
+  }
+  
+  const url = `${STOCK_OUT_ENDPOINTS.BASE}/summary${params.toString() ? `?${params.toString()}` : ''}`;
+  return fetchWithAuth(url, {}, token);
+};
+
+export const getBarcodeScanHistory = async (
+  token: string,
+  filters?: {
+    start_date?: string;
+    end_date?: string;
+    product_id?: string;
+    scan_type?: 'stock_in' | 'stock_out' | 'check_stock';
+  }
+): Promise<ApiResponse<BarcodeScan[]>> => {
+  const params = new URLSearchParams();
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.append(key, value);
+    });
+  }
+  
+  const url = `/barcode-scans${params.toString() ? `?${params.toString()}` : ''}`;
+  return fetchWithAuth(url, {}, token);
 };
 
 //=============================================================================

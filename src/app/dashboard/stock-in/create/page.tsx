@@ -1,7 +1,9 @@
+// app/dashboard/stock-in/create/page.tsx - Simplified untuk barcode scanning workflow
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,694 +15,290 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  getAllSuppliers,
-  getAllProducts,
-  getAllUnits,
-  getAllWarehouses,
-  getContainersByWarehouse,
-  getRacksByContainer,
-  getUnitConversionsByProduct,
-  createStockIn,
-  addStockInItem,
-} from "@/lib/api/services";
-import {
-  Supplier,
-  Product,
-  Unit,
-  Warehouse,
-  Container,
-  Rack,
-  UnitConversion,
-} from "@/lib/api/types";
-import Cookies from "js-cookie";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { getAllSuppliers, createStockIn } from "@/lib/api/services";
+import type { Supplier } from "@/lib/api/types";
+import { CheckCircle2, AlertCircle, Package, ArrowRight } from "lucide-react";
 
 export default function CreateStockInPage() {
+  const { token } = useAuth();
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
 
-  // State untuk form header
-  const [invoiceCode, setInvoiceCode] = useState("");
-  const [packingList, setPackingList] = useState("");
-  const [supplierId, setSupplierId] = useState("");
-  const [receiptDate, setReceiptDate] = useState("");
-  const [notes, setNotes] = useState("");
+  // Simplified form state - removed notes as discussed
+  const [formData, setFormData] = useState({
+    invoice_code: "",
+    packing_list_number: "",
+    supplier_id: "",
+    receipt_date: new Date().toISOString().split('T')[0], // Default to today
+  });
 
-  // State untuk form item
-  const [stockInId, setStockInId] = useState<string | null>(null);
-  const [productId, setProductId] = useState("");
-  const [unitId, setUnitId] = useState("");
-  const [quantity, setQuantity] = useState<number>(1);
-  const [packsPerBox, setPacksPerBox] = useState<number | null>(null);
-  const [piecesPerPack, setPiecesPerPack] = useState<number | null>(null);
-  const [totalPieces, setTotalPieces] = useState<number>(0);
-  const [pricePerUnit, setPricePerUnit] = useState<number>(0);
-  const [totalAmount, setTotalAmount] = useState<number>(0);
-  const [warehouseId, setWarehouseId] = useState("");
-  const [containerId, setContainerId] = useState("");
-  const [rackId, setRackId] = useState("");
-
-  // Data dari API
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [containers, setContainers] = useState<Container[]>([]);
-  const [racks, setRacks] = useState<Rack[]>([]);
-  const [unitConversions, setUnitConversions] = useState<UnitConversion[]>([]);
-
-  // State tambahan
-  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
-  const [currentUnit, setCurrentUnit] = useState<Unit | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [headerCreated, setHeaderCreated] = useState(false);
 
-  // Mendapatkan token dari cookie saat komponen dimuat
   useEffect(() => {
-    const storedToken = Cookies.get("token");
-    if (storedToken) {
-      setToken(storedToken);
+    if (token) {
+      loadSuppliers();
     }
-  }, []);
-
-  // Mengambil data master saat token tersedia
-  useEffect(() => {
-    if (!token) return;
-
-    const fetchMasterData = async () => {
-      setIsLoading(true);
-      try {
-        const [suppliersRes, productsRes, unitsRes, warehousesRes] =
-          await Promise.all([
-            getAllSuppliers(token),
-            getAllProducts(token),
-            getAllUnits(token),
-            getAllWarehouses(token),
-          ]);
-
-        setSuppliers(suppliersRes.data || []);
-        setProducts(productsRes.data || []);
-        setUnits(unitsRes.data || []);
-        setWarehouses(warehousesRes.data || []);
-      } catch (err: any) {
-        setError(err.message || "Error fetching master data");
-        console.error("Error fetching master data:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMasterData();
   }, [token]);
 
-  // Mengambil container saat warehouse dipilih
-  useEffect(() => {
-    if (!token || !warehouseId) return;
-
-    const fetchContainers = async () => {
-      try {
-        const containersRes = await getContainersByWarehouse(
-          token,
-          warehouseId
-        );
-        setContainers(containersRes.data || []);
-        setContainerId("");
-        setRackId("");
-      } catch (err: any) {
-        console.error("Error fetching containers:", err);
+  const loadSuppliers = async () => {
+    try {
+      const response = await getAllSuppliers(token!);
+      if (response.code === "200" && response.data) {
+        setSuppliers(response.data);
       }
-    };
-
-    fetchContainers();
-  }, [token, warehouseId]);
-
-  // Mengambil rack saat container dipilih
-  useEffect(() => {
-    if (!token || !containerId) return;
-
-    const fetchRacks = async () => {
-      try {
-        const racksRes = await getRacksByContainer(token, containerId);
-        setRacks(racksRes.data || []);
-        setRackId("");
-      } catch (err: any) {
-        console.error("Error fetching racks:", err);
-      }
-    };
-
-    fetchRacks();
-  }, [token, containerId]);
-
-  // Mengambil konversi unit saat produk dipilih
-  useEffect(() => {
-    if (!token || !productId) return;
-
-    const fetchProductDetails = async () => {
-      try {
-        // Mendapatkan detail produk
-        const product = products.find((p) => p.id === productId) || null;
-        setCurrentProduct(product);
-
-        // Reset unit selection
-        setUnitId("");
-        setCurrentUnit(null);
-
-        // Mendapatkan konversi unit untuk produk
-        const conversionsRes = await getUnitConversionsByProduct(
-          token,
-          productId
-        );
-        setUnitConversions(conversionsRes.data || []);
-
-        // Reset unit-specific fields
-        setPacksPerBox(null);
-        setPiecesPerPack(null);
-        setTotalPieces(0);
-
-        // Set default price if product available
-        if (product) {
-          setPricePerUnit(product.price);
-        }
-      } catch (err: any) {
-        console.error("Error fetching product details:", err);
-      }
-    };
-
-    fetchProductDetails();
-  }, [token, productId, products]);
-
-  // Update current unit when unit is selected
-  useEffect(() => {
-    if (unitId) {
-      const unit = units.find((u) => u.id === unitId) || null;
-      setCurrentUnit(unit);
-    } else {
-      setCurrentUnit(null);
+    } catch (err: any) {
+      setError("Failed to load suppliers");
+      console.error("Error loading suppliers:", err);
+    } finally {
+      setIsLoading(false);
     }
-  }, [unitId, units]);
+  };
 
-  // Calculate total pieces and amount when inputs change
-  useEffect(() => {
-    if (!currentProduct || !currentUnit) {
-      setTotalPieces(0);
-      setTotalAmount(0);
-      return;
-    }
-
-    let totalPcs = 0;
-
-    // Calculate based on unit type
-    if (
-      currentUnit.name.toLowerCase() === "piece" ||
-      currentUnit.abbreviation.toLowerCase() === "pcs"
-    ) {
-      // If unit is piece, total is just quantity
-      totalPcs = quantity;
-    } else if (
-      currentUnit.name.toLowerCase() === "pack" ||
-      currentUnit.abbreviation.toLowerCase() === "pack"
-    ) {
-      // If unit is pack, multiply by pieces per pack
-      if (piecesPerPack) {
-        totalPcs = quantity * piecesPerPack;
-      }
-    } else if (
-      currentUnit.name.toLowerCase() === "box" ||
-      currentUnit.abbreviation.toLowerCase() === "box"
-    ) {
-      // If unit is box, multiply by packs per box and pieces per pack
-      if (packsPerBox && piecesPerPack) {
-        totalPcs = quantity * packsPerBox * piecesPerPack;
-      }
-    }
-
-    setTotalPieces(totalPcs);
-
-    // Calculate total amount
-    setTotalAmount(quantity * pricePerUnit);
-  }, [
-    quantity,
-    packsPerBox,
-    piecesPerPack,
-    pricePerUnit,
-    currentProduct,
-    currentUnit,
-  ]);
-
-  // Handle submit form header
-  const handleSubmitHeader = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!token) {
-      setError("Token tidak ditemukan. Silakan login kembali.");
+      setError("Authentication required. Please login again.");
       return;
     }
 
-    try {
-      setIsLoading(true);
+    // Validation
+    if (!formData.invoice_code || !formData.supplier_id || !formData.receipt_date) {
+      setError("Please fill in all required fields");
+      return;
+    }
 
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
       const response = await createStockIn(token, {
-        invoice_code: invoiceCode,
-        packing_list_number: packingList,
-        supplier_id: supplierId,
-        receipt_date: receiptDate,
-        notes,
+        invoice_code: formData.invoice_code,
+        packing_list_number: formData.packing_list_number || undefined,
+        supplier_id: formData.supplier_id,
+        receipt_date: formData.receipt_date,
       });
 
-      if (response.data && response.data.id) {
-        setStockInId(response.data.id);
-        setHeaderCreated(true);
-        setSuccessMessage(
-          "Stock In header berhasil dibuat. Silakan tambahkan item."
-        );
+      if (response.code === "201" && response.data) {
+        setSuccessMessage("Stock In created successfully! Redirecting to barcode scanning...");
+        
+        // Redirect ke halaman add item untuk mulai scan barcode
+        // Ini adalah workflow baru: buat header → langsung scan items
+        setTimeout(() => {
+          router.push(`/dashboard/stock-in/add-item/${response.data!.id}`);
+        }, 1500);
       } else {
-        setError("Gagal membuat Stock In header. Respons tidak valid.");
+        setError(response.message || "Failed to create Stock In");
       }
     } catch (err: any) {
-      setError(err.message || "Gagal membuat Stock In header");
-      console.error("Error creating Stock In header:", err);
+      setError(err.message || "Failed to create Stock In");
+      console.error("Error creating Stock In:", err);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Handle submit form item
-  const handleSubmitItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!token || !stockInId) {
-      setError("Token atau Stock In ID tidak ditemukan");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-
-      const response = await addStockInItem(token, stockInId, {
-        product_id: productId,
-        unit_id: unitId,
-        quantity,
-        packs_per_box: packsPerBox,
-        pieces_per_pack: piecesPerPack,
-        price_per_unit: pricePerUnit,
-        warehouse_id: warehouseId,
-        container_id: containerId,
-        rack_id: rackId,
-      });
-
-      if (response && response.data) {
-        setSuccessMessage("Item berhasil ditambahkan ke Stock In");
-
-        // Reset form item
-        setProductId("");
-        setUnitId("");
-        setQuantity(1);
-        setPacksPerBox(null);
-        setPiecesPerPack(null);
-        setTotalPieces(0);
-        setPricePerUnit(0);
-        setTotalAmount(0);
-        setWarehouseId("");
-        setContainerId("");
-        setRackId("");
-      } else {
-        setError("Gagal menambahkan item. Respons tidak valid.");
-      }
-    } catch (err: any) {
-      setError(err.message || "Gagal menambahkan item");
-      console.error("Error adding Stock In item:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle complete stock in
-  const handleCompleteStockIn = () => {
-    router.push(`/dashboard/stock-in`);
-  };
-
-  // Render loading state
-  if (isLoading && !headerCreated) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full p-6">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
-          <div className="w-10 h-10 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading suppliers...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Tambah Stock In Baru</h1>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto">
+        {/* Header dengan penjelasan workflow baru */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Create New Stock In</h1>
+          <p className="text-gray-600">
+            Create stock in header first, then scan items using barcode scanner
+          </p>
+          
+          {/* Workflow indicator */}
+          <div className="mt-4 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
+            <Package className="h-4 w-4" />
+            <span>Step 1: Create Header</span>
+            <ArrowRight className="h-4 w-4" />
+            <span>Step 2: Scan Items</span>
+            <ArrowRight className="h-4 w-4" />
+            <span>Step 3: Complete</span>
+          </div>
+        </div>
 
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+        {/* Alert Messages */}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {successMessage && (
-        <Alert className="mb-4 bg-green-900/20 border border-green-700 text-green-300">
-          <CheckCircle2 className="h-4 w-4 text-green-300" />
-          <AlertTitle>Sukses</AlertTitle>
-          <AlertDescription>{successMessage}</AlertDescription>
-        </Alert>
-      )}
+        {successMessage && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Success</AlertTitle>
+            <AlertDescription className="text-green-700">{successMessage}</AlertDescription>
+          </Alert>
+        )}
 
-      {!headerCreated ? (
-        // Form untuk Stock In Header
+        {/* Simplified Stock In Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Informasi Stock In</CardTitle>
+            <CardTitle>Stock In Information</CardTitle>
+            <p className="text-sm text-gray-600">
+              Enter basic receipt information. Item details will be added by scanning.
+            </p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmitHeader} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="invoiceCode">
-                    Nomor Invoice <span className="text-red-500">*</span>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                {/* Invoice Code - Required */}
+                <div>
+                  <Label htmlFor="invoice_code">
+                    Invoice Code <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="invoiceCode"
-                    value={invoiceCode}
-                    onChange={(e) => setInvoiceCode(e.target.value)}
-                    placeholder="INV-20240518-001"
+                    id="invoice_code"
+                    value={formData.invoice_code}
+                    onChange={(e) => setFormData({ ...formData, invoice_code: e.target.value })}
+                    placeholder="e.g., INV-2025-001"
                     required
+                    className="mt-1"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Unique invoice number from supplier
+                  </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="packingList">Nomor Packing List</Label>
+                {/* Packing List - Optional */}
+                <div>
+                  <Label htmlFor="packing_list">Packing List Number</Label>
                   <Input
-                    id="packingList"
-                    value={packingList}
-                    onChange={(e) => setPackingList(e.target.value)}
-                    placeholder="PL-20240518-001"
+                    id="packing_list"
+                    value={formData.packing_list_number}
+                    onChange={(e) => setFormData({ ...formData, packing_list_number: e.target.value })}
+                    placeholder="e.g., PL-2025-001"
+                    className="mt-1"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Optional packing list reference
+                  </p>
                 </div>
 
-                <div className="space-y-2">
+                {/* Supplier Selection - Required */}
+                <div>
                   <Label htmlFor="supplier">
                     Supplier <span className="text-red-500">*</span>
                   </Label>
                   <Select
-                    value={supplierId}
-                    onValueChange={setSupplierId}
-                    required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih supplier" />
+                    value={formData.supplier_id}
+                    onValueChange={(value) => setFormData({ ...formData, supplier_id: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select supplier" />
                     </SelectTrigger>
                     <SelectContent>
                       {suppliers.map((supplier) => (
                         <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.name}
+                          <div>
+                            <div className="font-medium">{supplier.name}</div>
+                            {supplier.contact_person && (
+                              <div className="text-sm text-gray-500">{supplier.contact_person}</div>
+                            )}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Choose the supplier for this receipt
+                  </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="receiptDate">
-                    Tanggal Penerimaan <span className="text-red-500">*</span>
+                {/* Receipt Date - Required */}
+                <div>
+                  <Label htmlFor="receipt_date">
+                    Receipt Date <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="receiptDate"
+                    id="receipt_date"
                     type="date"
-                    value={receiptDate}
-                    onChange={(e) => setReceiptDate(e.target.value)}
+                    value={formData.receipt_date}
+                    onChange={(e) => setFormData({ ...formData, receipt_date: e.target.value })}
                     required
+                    className="mt-1"
                   />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="notes">Catatan</Label>
-                  <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Catatan tambahan tentang penerimaan barang"
-                    rows={3}
-                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Date when goods were received
+                  </p>
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Memproses..." : "Lanjutkan ke Input Item"}
+              {/* Information Box - Menjelaskan next step */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-800 mb-2">What happens next?</h4>
+                <div className="text-sm text-blue-700 space-y-1">
+                  <p>• After creating this header, you'll be redirected to the item scanning page</p>
+                  <p>• Use your iWare barcode scanner to scan product barcodes</p>
+                  <p>• System will automatically detect product and unit type</p>
+                  <p>• Enter quantities and storage locations for each scanned item</p>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push("/dashboard/stock-in")}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      Create & Continue to Scanning
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
-      ) : (
-        // Form untuk Stock In Item
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tambah Item Stock In</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmitItem} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="product">
-                      Produk <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={productId}
-                      onValueChange={setProductId}
-                      required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih produk" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.part_number} - {product.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="unit">
-                      Satuan <span className="text-red-500">*</span>
-                    </Label>
-                    <Select value={unitId} onValueChange={setUnitId} required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih satuan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {units.map((unit) => (
-                          <SelectItem key={unit.id} value={unit.id}>
-                            {unit.name} ({unit.abbreviation})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">
-                      Jumlah <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={quantity}
-                      onChange={(e) =>
-                        setQuantity(parseInt(e.target.value) || 0)
-                      }
-                      required
-                    />
-                  </div>
-
-                  {/* Unit conversion fields - conditionally show based on selected unit */}
-                  {currentUnit &&
-                    (currentUnit.name.toLowerCase() === "box" ||
-                      currentUnit.abbreviation.toLowerCase() === "box") && (
-                      <div className="space-y-2">
-                        <Label htmlFor="packsPerBox">
-                          Jumlah Pack per Dus{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="packsPerBox"
-                          type="number"
-                          min="1"
-                          value={packsPerBox || ""}
-                          onChange={(e) =>
-                            setPacksPerBox(parseInt(e.target.value) || null)
-                          }
-                          required
-                        />
-                      </div>
-                    )}
-
-                  {currentUnit &&
-                    (currentUnit.name.toLowerCase() === "pack" ||
-                      currentUnit.abbreviation.toLowerCase() === "pack" ||
-                      currentUnit.name.toLowerCase() === "box" ||
-                      currentUnit.abbreviation.toLowerCase() === "box") && (
-                      <div className="space-y-2">
-                        <Label htmlFor="piecesPerPack">
-                          Jumlah Pcs per Pack{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="piecesPerPack"
-                          type="number"
-                          min="1"
-                          value={piecesPerPack || ""}
-                          onChange={(e) =>
-                            setPiecesPerPack(parseInt(e.target.value) || null)
-                          }
-                          required
-                        />
-                      </div>
-                    )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="pricePerUnit">
-                      Harga per Unit <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="pricePerUnit"
-                      type="number"
-                      min="0"
-                      value={pricePerUnit}
-                      onChange={(e) =>
-                        setPricePerUnit(parseFloat(e.target.value) || 0)
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Total Jumlah (Pcs)</Label>
-                    <div className="p-2 border rounded-md bg-gray-700">
-                      {totalPieces}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Total Nilai</Label>
-                    <div className="p-2 border rounded-md bg-gray-700">
-                      Rp {totalAmount.toLocaleString("id-ID")}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-2">
-                  <h3 className="font-medium">Lokasi Penyimpanan</h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="warehouse">
-                        Gudang <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        value={warehouseId}
-                        onValueChange={setWarehouseId}
-                        required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih gudang" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {warehouses.map((warehouse) => (
-                            <SelectItem key={warehouse.id} value={warehouse.id}>
-                              {warehouse.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="container">
-                        Container <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        value={containerId}
-                        onValueChange={setContainerId}
-                        required
-                        disabled={!warehouseId}>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              warehouseId
-                                ? "Pilih container"
-                                : "Pilih gudang terlebih dahulu"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {containers.map((container) => (
-                            <SelectItem key={container.id} value={container.id}>
-                              {container.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="rack">
-                        Rack <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        value={rackId}
-                        onValueChange={setRackId}
-                        required
-                        disabled={!containerId}>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              containerId
-                                ? "Pilih rack"
-                                : "Pilih container terlebih dahulu"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {racks.map((rack) => (
-                            <SelectItem key={rack.id} value={rack.id}>
-                              {rack.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCompleteStockIn}>
-                    Selesai Input Stock In
-                  </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? "Memproses..." : "Tambah Item"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        {/* Help Section */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Need Help?</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-gray-600 space-y-2">
+            <p><strong>Scanner not working?</strong> Make sure your iWare scanner is connected and configured properly.</p>
+            <p><strong>Product not found?</strong> Register the product first in the Products section before scanning.</p>
+            <p><strong>Wrong supplier?</strong> You can cancel and create a new stock in with the correct supplier.</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

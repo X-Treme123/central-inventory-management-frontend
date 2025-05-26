@@ -1,4 +1,4 @@
-// app/dashboard/stock-in/page.tsx
+// app/dashboard/stock-in/page.tsx - Updated dengan barcode workflow information
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -21,6 +21,13 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
+  Scan,
+  QrCode,
+  BarChart3,
+  Layers,
+  Box,
+  Users,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +39,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 
 export default function StockInPage() {
@@ -41,6 +54,7 @@ export default function StockInPage() {
   const [sortField, setSortField] = useState<string>("receipt_date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all"); // all, today, week, month
 
   const {
     data: stockInData,
@@ -52,28 +66,44 @@ export default function StockInPage() {
     deps: [],
   });
 
-  // Calculate stats for the stats cards
+  // Enhanced stats calculation with barcode scanning metrics
   const stats = useMemo(() => {
-    if (!stockInData) return { total: 0, completed: 0, pending: 0 };
+    if (!stockInData) return { 
+      total: 0, 
+      completed: 0, 
+      pending: 0, 
+      value: 0,
+      totalItems: 0,
+      avgItemsPerReceipt: 0,
+      totalScans: 0
+    };
+
+    const totalItems = stockInData.reduce((sum, stockIn) => 
+      sum + (stockIn.items?.length || 0), 0
+    );
+
+    // Estimate total scans (in real implementation, this would come from barcode_scans table)
+    const totalScans = stockInData.reduce((sum, stockIn) => 
+      sum + (stockIn.items?.length || 0), 0 // Each item represents one barcode scan
+    );
 
     return {
       total: stockInData.length,
-      completed: stockInData.filter((item) => item.status === "completed")
-        .length,
+      completed: stockInData.filter((item) => item.status === "completed").length,
       pending: stockInData.filter((item) => item.status === "pending").length,
       value: stockInData.reduce((sum, item) => {
-        // Calculate total value if item has price data
-        const itemValue =
-          item.items?.reduce(
-            (total, i) => total + i.quantity * i.price_per_unit,
-            0
-          ) || 0;
+        const itemValue = item.items?.reduce(
+          (total, i) => total + i.quantity * i.price_per_unit, 0
+        ) || 0;
         return sum + itemValue;
       }, 0),
+      totalItems,
+      avgItemsPerReceipt: stockInData.length > 0 ? totalItems / stockInData.length : 0,
+      totalScans
     };
   }, [stockInData]);
 
-  // Filter and sort data
+  // Enhanced filtering with date filter
   const filteredData = useMemo(() => {
     if (!stockInData) return [];
 
@@ -81,27 +111,46 @@ export default function StockInPage() {
       const matchesSearch =
         item.invoice_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.supplier_name &&
-          item.supplier_name
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())) ||
+          item.supplier_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.notes &&
           item.notes.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesStatus =
         statusFilter === "all" || item.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      // Date filtering
+      let matchesDate = true;
+      if (dateFilter !== "all") {
+        const receiptDate = new Date(item.receipt_date);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - receiptDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        switch (dateFilter) {
+          case "today":
+            matchesDate = diffDays <= 1;
+            break;
+          case "week":
+            matchesDate = diffDays <= 7;
+            break;
+          case "month":
+            matchesDate = diffDays <= 30;
+            break;
+          default:
+            matchesDate = true;
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [stockInData, searchTerm, statusFilter]);
+  }, [stockInData, searchTerm, statusFilter, dateFilter]);
 
   const sortedData = useMemo(() => {
     return [...filteredData].sort((a, b) => {
       if (sortField === "receipt_date") {
         return sortDirection === "asc"
-          ? new Date(a.receipt_date).getTime() -
-              new Date(b.receipt_date).getTime()
-          : new Date(b.receipt_date).getTime() -
-              new Date(a.receipt_date).getTime();
+          ? new Date(a.receipt_date).getTime() - new Date(b.receipt_date).getTime()
+          : new Date(b.receipt_date).getTime() - new Date(a.receipt_date).getTime();
       }
 
       if (a[sortField as keyof typeof a] < b[sortField as keyof typeof b]) {
@@ -123,7 +172,6 @@ export default function StockInPage() {
     }
   };
 
-  // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -132,7 +180,6 @@ export default function StockInPage() {
     }).format(amount);
   };
 
-  // Get status badge styling
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -144,7 +191,6 @@ export default function StockInPage() {
     }
   };
 
-  // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
     let icon = null;
 
@@ -165,6 +211,22 @@ export default function StockInPage() {
         </span>
       </Badge>
     );
+  };
+
+  // Get items count with unit type breakdown
+  const getItemsInfo = (stockIn: any) => {
+    const items = stockIn.items || [];
+    const itemCount = items.length;
+    
+    // Group by unit type for visual indication
+    const unitTypes = items.reduce((acc: any, item: any) => {
+      if (item.unit_type) {
+        acc[item.unit_type] = (acc[item.unit_type] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    return { itemCount, unitTypes };
   };
 
   if (isLoading) {
@@ -200,9 +262,9 @@ export default function StockInPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Stock In</h1>
+          <h1 className="text-2xl font-bold">Stock In Management</h1>
           <p className="text-muted-foreground">
-            Manage incoming inventory items
+            Manage incoming inventory with barcode scanning
           </p>
         </div>
         <Button
@@ -213,13 +275,13 @@ export default function StockInPage() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Enhanced Stats Cards dengan Barcode Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <Package className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Records</p>
@@ -233,7 +295,7 @@ export default function StockInPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Completed</p>
@@ -247,7 +309,7 @@ export default function StockInPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pending</p>
@@ -261,49 +323,103 @@ export default function StockInPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Value</p>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(stats.value)}
-                </p>
+                <p className="text-xl font-bold">{formatCurrency(stats.value)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg">
+                <Scan className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Scans</p>
+                <p className="text-2xl font-bold">{stats.totalScans}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-pink-100 dark:bg-pink-900 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Items</p>
+                <p className="text-2xl font-bold">{stats.totalItems}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-100 dark:bg-cyan-900 rounded-lg">
+                <Users className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Avg Items</p>
+                <p className="text-2xl font-bold">{Math.round(stats.avgItemsPerReceipt)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Search */}
+      {/* Enhanced Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Input
-                placeholder="Search by invoice or supplier..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-                icon={<Search size={16} />}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="md:col-span-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by invoice, supplier..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
 
             <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm">
-                <option value="all">All Status</option>
-                <option value="completed">Completed</option>
-                <option value="pending">Pending</option>
-              </select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Date Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter size={14} />
-                More Filters
-              </Button>
               <Button variant="outline" size="sm" className="gap-2">
                 <FileDown size={14} />
                 Export
@@ -319,6 +435,9 @@ export default function StockInPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Stock In Records ({sortedData.length})</span>
+              <div className="text-sm text-gray-500">
+                Showing {sortedData.length} of {stats.total} records
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -337,17 +456,10 @@ export default function StockInPage() {
                       </div>
                     </th>
                     <th className="text-left py-3 px-2 font-medium">
-                      Supplier
+                      Supplier & Date
                     </th>
-                    <th
-                      className="text-left py-3 px-2 font-medium cursor-pointer"
-                      onClick={() => handleSort("receipt_date")}>
-                      <div className="flex items-center">
-                        Receipt Date
-                        {sortField === "receipt_date" && (
-                          <ArrowUpDown size={14} className="ml-1" />
-                        )}
-                      </div>
+                    <th className="text-left py-3 px-2 font-medium">
+                      Scanning Progress
                     </th>
                     <th
                       className="text-left py-3 px-2 font-medium cursor-pointer"
@@ -366,55 +478,125 @@ export default function StockInPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedData.map((item, index) => (
-                    <motion.tr
-                      key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2">
-                        <code className="px-2 py-1 bg-muted rounded text-sm">
-                          {item.invoice_code}
-                        </code>
-                      </td>
-                      <td className="py-3 px-2">
-                        <div className="font-medium">
-                          {item.supplier_name || "N/A"}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {item.packing_list_number || ""}
-                        </div>
-                      </td>
-                      <td className="py-3 px-2">
-                        {new Date(item.receipt_date).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-2">
-                        <StatusBadge status={item.status} />
-                      </td>
-                      <td className="py-3 px-2">
-                        {item.received_by_name || "N/A"}
-                      </td>
-                      <td className="py-3 px-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical size={14} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() =>
-                                router.push(`/dashboard/stock-in/${item.id}`)
-                              }>
-                              <Eye size={14} className="mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </motion.tr>
-                  ))}
+                  {sortedData.map((item, index) => {
+                    const itemsInfo = getItemsInfo(item);
+                    const totalValue = item.items?.reduce(
+                      (sum: number, i: any) => sum + i.quantity * i.price_per_unit, 0
+                    ) || 0;
+
+                    return (
+                      <motion.tr
+                        key={item.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-2">
+                          <div>
+                            <code className="px-2 py-1 bg-muted rounded text-sm font-medium">
+                              {item.invoice_code}
+                            </code>
+                            {item.packing_list_number && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                PL: {item.packing_list_number}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        
+                        <td className="py-3 px-2">
+                          <div>
+                            <div className="font-medium">{item.supplier_name || "N/A"}</div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(item.receipt_date).toLocaleDateString('id-ID')}
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="py-3 px-2">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <QrCode className="h-4 w-4 text-gray-500" />
+                              <span className="font-medium">{itemsInfo.itemCount} items scanned</span>
+                            </div>
+                            
+                            {/* Unit type breakdown */}
+                            {itemsInfo.itemCount > 0 && (
+                              <div className="flex gap-1">
+                                {itemsInfo.unitTypes.piece > 0 && (
+                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                                    <Package className="h-3 w-3 mr-1" />
+                                    {itemsInfo.unitTypes.piece}
+                                  </Badge>
+                                )}
+                                {itemsInfo.unitTypes.pack > 0 && (
+                                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                                    <Layers className="h-3 w-3 mr-1" />
+                                    {itemsInfo.unitTypes.pack}
+                                  </Badge>
+                                )}
+                                {itemsInfo.unitTypes.box > 0 && (
+                                  <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                                    <Box className="h-3 w-3 mr-1" />
+                                    {itemsInfo.unitTypes.box}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Value */}
+                            {totalValue > 0 && (
+                              <div className="text-sm text-gray-600">
+                                Value: {formatCurrency(totalValue)}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        
+                        <td className="py-3 px-2">
+                          <StatusBadge status={item.status} />
+                        </td>
+                        
+                        <td className="py-3 px-2">
+                          <div>
+                            <div className="font-medium">{item.received_by_name || "N/A"}</div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(item.created_at).toLocaleDateString('id-ID')}
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="py-3 px-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical size={14} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(`/dashboard/stock-in/${item.id}`)
+                                }>
+                                <Eye size={14} className="mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              {item.status === "pending" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    router.push(`/dashboard/stock-in/add-item/${item.id}`)
+                                  }>
+                                  <Scan size={14} className="mr-2" />
+                                  Continue Scanning
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -423,21 +605,26 @@ export default function StockInPage() {
       ) : (
         <Card className="p-6 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
-            <Package size={48} className="text-gray-400" />
+            <Scan size={48} className="text-gray-400" />
           </div>
           <h3 className="mt-4 text-lg font-medium">
-            No stock in records found
+            {searchTerm || statusFilter !== "all" || dateFilter !== "all"
+              ? "No stock in records found"
+              : "No stock in records yet"}
           </h3>
           <p className="text-muted-foreground">
-            {searchTerm || statusFilter !== "all"
+            {searchTerm || statusFilter !== "all" || dateFilter !== "all"
               ? "Try adjusting your search or filters"
-              : "Get started by creating a new stock in record"}
+              : "Get started by creating a new stock in record with barcode scanning"}
           </p>
-          <div className="mt-6">
+          <div className="mt-6 space-y-3">
             <Button onClick={() => router.push("/dashboard/stock-in/create")}>
               <Plus className="mr-2 h-4 w-4" />
-              New Stock In
+              Create First Stock In
             </Button>
+            <div className="text-sm text-gray-500">
+              Use barcode scanning for fast and accurate data entry
+            </div>
           </div>
         </Card>
       )}
