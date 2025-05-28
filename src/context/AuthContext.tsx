@@ -3,26 +3,21 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser } from '@/lib/api/services';
+import { loginUser, checkToken, refreshToken as refreshTokenService } from '@/features/auth/api/services';
+import { User } from '@/features/auth/api/types';
 import Cookies from 'js-cookie';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  divisi: string;
-  avatar?: string;
-}
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   checkTokenValidity: () => Promise<boolean>;
+  handleRefreshToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,51 +45,127 @@ const isTokenExpired = (token: string): boolean => {
   return Date.now() >= expiry;
 };
 
-// Create a secure way to store user data that doesn't use localStorage
-// but still persists across refreshes
+// Cookie names
+const TOKEN_COOKIE = 'token';
+const REFRESH_TOKEN_COOKIE = 'refresh_token';
 const USER_DATA_COOKIE = 'user_data';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Clear all auth data
+  const clearAuthData = () => {
+    Cookies.remove(TOKEN_COOKIE);
+    Cookies.remove(REFRESH_TOKEN_COOKIE);
+    Cookies.remove(USER_DATA_COOKIE);
+    setUser(null);
+    setToken(null);
+    setRefreshToken(null);
+  };
+
+  // Handle token refresh
+  const handleRefreshToken = async (): Promise<boolean> => {
+    try {
+      const storedRefreshToken = Cookies.get(REFRESH_TOKEN_COOKIE);
+      
+      if (!storedRefreshToken) {
+        clearAuthData();
+        return false;
+      }
+
+      // Check if refresh token is expired
+      if (isTokenExpired(storedRefreshToken)) {
+        clearAuthData();
+        router.push('/login');
+        return false;
+      }
+
+      const response = await refreshTokenService(storedRefreshToken);
+      
+      // Store new tokens
+      Cookies.set(TOKEN_COOKIE, response.token, { 
+        expires: 1,
+        sameSite: 'Strict'
+      });
+      
+      Cookies.set(REFRESH_TOKEN_COOKIE, response.refreshToken, { 
+        expires: 7, // Refresh token typically lasts longer
+        sameSite: 'Strict'
+      });
+
+      setToken(response.token);
+      setRefreshToken(response.refreshToken);
+      
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      clearAuthData();
+      router.push('/login');
+      return false;
+    }
+  };
+
   // Check if user is logged in on initial load
   useEffect(() => {
     const checkAuthentication = async () => {
-      const storedToken = Cookies.get('token');
+      const storedToken = Cookies.get(TOKEN_COOKIE);
+      const storedRefreshToken = Cookies.get(REFRESH_TOKEN_COOKIE);
       const storedUserData = Cookies.get(USER_DATA_COOKIE);
       
       if (storedToken) {
         // Check if token is expired
         if (isTokenExpired(storedToken)) {
-          // Token is expired, perform logout
-          Cookies.remove('token');
-          Cookies.remove(USER_DATA_COOKIE);
-          setUser(null);
-          setToken(null);
-          router.push('/login');
-          setIsLoading(false);
-          return;
-        }
-        
-        setToken(storedToken);
-        
-        // Try to get user data from the cookie first
-        if (storedUserData) {
-          try {
-            const parsedUserData = JSON.parse(storedUserData);
-            setUser(parsedUserData);
-          } catch (err) {
-            console.error('Error parsing user data:', err);
-            // Fallback to extract from JWT if JSON parsing fails
-            extractUserFromToken(storedToken);
+          // Try to refresh token
+          const refreshSuccess = await handleRefreshToken();
+          if (!refreshSuccess) {
+            setIsLoading(false);
+            return;
           }
         } else {
-          // If no user data cookie, extract from token
-          extractUserFromToken(storedToken);
+          setToken(storedToken);
+          setRefreshToken(storedRefreshToken || null);
+          
+          // Try to get user data from the cookie first
+          if (storedUserData) {
+            try {
+              const parsedUserData = JSON.parse(storedUserData);
+              setUser(parsedUserData);
+            } catch (err) {
+              console.error('Error parsing user data:', err);
+              // Fallback to check token API
+              try {
+                const tokenCheckResponse = await checkToken();
+                setUser(tokenCheckResponse.user);
+                // Save user data to cookie
+                Cookies.set(USER_DATA_COOKIE, JSON.stringify(tokenCheckResponse.user), { 
+                  expires: 1,
+                  sameSite: 'Strict'
+                });
+              } catch (tokenError) {
+                console.error('Token check failed:', tokenError);
+                clearAuthData();
+              }
+            }
+          } else {
+            // If no user data cookie, check token validity
+            try {
+              const tokenCheckResponse = await checkToken();
+              setUser(tokenCheckResponse.user);
+              // Save user data to cookie
+              Cookies.set(USER_DATA_COOKIE, JSON.stringify(tokenCheckResponse.user), { 
+                expires: 1,
+                sameSite: 'Strict'
+              });
+            } catch (tokenError) {
+              console.error('Token check failed:', tokenError);
+              clearAuthData();
+            }
+          }
         }
       }
       
@@ -104,29 +175,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuthentication();
   }, [router]);
 
-  // Function to extract user data from token
-  const extractUserFromToken = (token: string) => {
-    const payload = decodeJWT(token);
-    if (payload && payload.id) {
-      const userData = {
-        id: payload.id,
-        name: payload.name || 'User',
-        email: payload.email || '',
-        divisi: payload.divisi || 'Admin'
-      };
-      setUser(userData);
-      
-      // Save user data to cookie for persistence across refreshes
-      Cookies.set(USER_DATA_COOKIE, JSON.stringify(userData), { 
-        expires: 1,
-        sameSite: 'Strict'
-      });
-    }
-  };
-
   // Function to check token validity
   const checkTokenValidity = async (): Promise<boolean> => {
-    const currentToken = Cookies.get('token');
+    const currentToken = Cookies.get(TOKEN_COOKIE);
     
     if (!currentToken) {
       return false;
@@ -134,49 +185,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Check if token is expired
     if (isTokenExpired(currentToken)) {
-      // Perform logout
-      Cookies.remove('token');
-      Cookies.remove(USER_DATA_COOKIE);
-      setUser(null);
-      setToken(null);
-      router.push('/login');
-      return false;
+      // Try to refresh token
+      return await handleRefreshToken();
     }
     
     return true;
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await loginUser(email, password);
+      const response = await loginUser(username, password);
       
-      if (response.token) {
-        // Store token in HTTP-only cookie
-        Cookies.set('token', response.token, { 
+      if (response.token && response.user) {
+        // Store tokens in HTTP-only cookies
+        Cookies.set(TOKEN_COOKIE, response.token, { 
           expires: 1,
           sameSite: 'Strict'
         });
         
-        // Create user object from response
-        const userData = {
-          id: response.user?.id || 1,
-          name: response.user?.name || email.split('@')[0],
-          email: response.user?.email || email,
-          divisi: response.user?.divisi || 'Default Division',
-          avatar: response.user?.avatar || undefined
-        };
+        if (response.refreshToken) {
+          Cookies.set(REFRESH_TOKEN_COOKIE, response.refreshToken, { 
+            expires: 7, // Refresh token typically lasts longer
+            sameSite: 'Strict'
+          });
+          setRefreshToken(response.refreshToken);
+        }
         
         // Save user data for refresh persistence
-        Cookies.set(USER_DATA_COOKIE, JSON.stringify(userData), { 
+        Cookies.set(USER_DATA_COOKIE, JSON.stringify(response.user), { 
           expires: 1,
           sameSite: 'Strict'
         });
         
         // Set user data in state
-        setUser(userData);
+        setUser(response.user);
         setToken(response.token);
         
         // Redirect to dashboard
@@ -194,12 +239,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     // Clear cookies
-    Cookies.remove('token');
-    Cookies.remove(USER_DATA_COOKIE);
+    clearAuthData();
     
-    // Clear state
-    setUser(null);
-    setToken(null);
+    // Redirect to login
     router.push('/login');
   };
 
@@ -207,13 +249,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider 
       value={{ 
         user, 
-        token, 
+        token,
+        refreshToken,
         isLoading, 
         error, 
         login, 
         logout,
-        isAuthenticated: !!token,
-        checkTokenValidity
+        isAuthenticated: !!token && !!user,
+        checkTokenValidity,
+        handleRefreshToken
       }}
     >
       {children}

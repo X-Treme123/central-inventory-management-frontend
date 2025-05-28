@@ -47,6 +47,7 @@ export const getAuthHeaders = (token: string | null) => {
 const handleTokenExpiration = () => {
   // Clear cookies
   Cookies.remove('token');
+  Cookies.remove('refresh_token');
   Cookies.remove('user_data');
   
   // Redirect to login page
@@ -57,6 +58,11 @@ const handleTokenExpiration = () => {
 
 // Centralized fetch function with authentication
 export const fetchWithAuth = async (url: string, options: RequestInit = {}, token: string | null = null) => {
+  // Get token from cookies if not provided
+  if (!token && typeof window !== 'undefined') {
+    token = Cookies.get('token') || null;
+  }
+  
   // Check token validity before making request
   if (token && isTokenExpired(token)) {
     handleTokenExpiration();
@@ -75,7 +81,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}, toke
     });
 
     // Handle authentication errors
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
       handleTokenExpiration();
       throw new Error('Session expired. Please log in again.');
     }
@@ -91,7 +97,8 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}, toke
     if (error.message && (
       error.message.includes('jwt expired') || 
       error.message.includes('invalid token') ||
-      error.message.includes('Session expired')
+      error.message.includes('Session expired') ||
+      error.message.includes('Access Denied')
     )) {
       handleTokenExpiration();
     }
