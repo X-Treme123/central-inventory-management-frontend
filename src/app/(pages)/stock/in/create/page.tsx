@@ -16,8 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getAllSuppliers, createStockIn } from "@/lib/api/services";
-import type { Supplier } from "@/lib/api/types";
+import { createStockIn } from "@/lib/api/services";
+import { getAllSuppliers, Supplier } from "@/features/dashboard/suppliers/api/index"
 import { CheckCircle2, AlertCircle, Package, ArrowRight } from "lucide-react";
 
 export default function CreateStockInPage() {
