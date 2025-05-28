@@ -64,15 +64,19 @@ export const DEFECT_ENDPOINTS = {
 export const STOCK_OUT_ENDPOINTS = {
   BASE: '/stock-out',
   DETAIL: (id: string) => `/stock-out/${id}`,
+  
+  // NEW: Direct scanning endpoints (POS-style) - MAIN FEATURE
+  SCAN: '/stock-out/scan',                              // POST untuk direct scan
+  STOCK_CHECK: (barcode: string) => `/stock-out/stock/${barcode}`, // GET untuk check stock
+  
   // Original items endpoints (untuk request-based system)
   ITEMS: (stockOutId: string) => `/stock-out/${stockOutId}/items`,
   ITEMS_SCAN: (stockOutId: string) => `/stock-out/${stockOutId}/items/scan`,
-  // New direct scanning endpoints (POS-style)
-  SCAN: '/stock-out/scan',
-  STOCK_CHECK: (barcode: string) => `/stock-out/stock/${barcode}`,
+  
   // Scan history and analytics
   SCAN_HISTORY: '/stock-out/history/scans',
   SUMMARY: '/stock-out/summary',
+  
   // Approval workflow
   APPROVE: (id: string) => `/stock-out/${id}/approve`,
   COMPLETE: (id: string) => `/stock-out/${id}/complete`,

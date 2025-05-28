@@ -1,4 +1,4 @@
-// app/(dashboard)/stock/out/[id]/page.tsx
+// app/(pages)/stock/out/scan/[id]/page.tsx - Enhanced with debugging
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -22,7 +22,7 @@ import {
   scanBarcodeForStockOut,
   getStockByBarcode,
   completeStockOut,
-} from "@/lib/api/services";
+} from "@/lib/api/services"; // Updated import path
 import { StockOut, StockOutScanResponse } from "@/lib/api/types";
 import Cookies from "js-cookie";
 import {
@@ -32,12 +32,13 @@ import {
   AlertCircle,
   BarChart3,
   Clock,
-  Trash2,
   ChevronLeft,
   ShoppingCart,
   Zap,
   TrendingDown,
   Eye,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 
 interface ScanTransaction {
@@ -54,7 +55,15 @@ interface ScanTransaction {
   remaining_stock: number;
 }
 
-export default function StockOutScanPage() {
+interface DebugInfo {
+  endpoint: string;
+  requestData: any;
+  responseData: any;
+  error: any;
+  timestamp: string;
+}
+
+export default function EnhancedStockOutScanPage() {
   const { id } = useParams();
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
@@ -77,38 +86,77 @@ export default function StockOutScanPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Debug states
+  const [debugMode, setDebugMode] = useState(process.env.NODE_ENV === 'development');
+  const [debugInfo, setDebugInfo] = useState<DebugInfo[]>([]);
+
+  // Debug helper function
+  const addDebugInfo = (type: string, data: any, error?: any) => {
+    if (!debugMode) return;
+    
+    const newDebugInfo: DebugInfo = {
+      endpoint: type,
+      requestData: data,
+      responseData: null,
+      error: error || null,
+      timestamp: new Date().toISOString()
+    };
+    
+    setDebugInfo(prev => [newDebugInfo, ...prev.slice(0, 9)]); // Keep last 10 entries
+    console.log(`[DEBUG ${type}]`, newDebugInfo);
+  };
 
   // Get token from cookie
   useEffect(() => {
     const storedToken = Cookies.get("token");
+    console.log("Token from cookie:", storedToken ? "Found" : "Not found");
+    
     if (storedToken) {
       setToken(storedToken);
     } else {
+      console.error("No token found, redirecting to login");
       router.push("/login");
     }
   }, [router]);
 
   // Fetch stock out details
   useEffect(() => {
-    if (!token || !id) return;
+    if (!token || !id) {
+      console.log("Waiting for token or ID", { hasToken: !!token, id });
+      return;
+    }
 
     const fetchStockOut = async () => {
+      console.log("Fetching stock out details for ID:", id);
       setIsLoading(true);
+      
       try {
+        addDebugInfo("getStockOutById", { id });
+        
         const response = await getStockOutById(token, id as string);
+        console.log("Stock out response:", response);
+        
         if (response.data) {
           setStockOut(response.data);
+          console.log("Stock out loaded:", response.data.reference_number);
           
           // Check status - hanya allow scan jika masih pending atau approved
           if (response.data.status === 'completed' || response.data.status === 'rejected') {
-            setError("Cannot scan items for completed or rejected stock out request");
+            const errorMsg = "Cannot scan items for completed or rejected stock out request";
+            setError(errorMsg);
+            console.warn(errorMsg, response.data.status);
           }
         } else {
-          setError("Stock out request not found");
+          const errorMsg = "Stock out request not found";
+          setError(errorMsg);
+          console.error(errorMsg);
         }
       } catch (err: any) {
-        setError(err.message || "Error loading stock out details");
+        const errorMsg = err.message || "Error loading stock out details";
+        setError(errorMsg);
         console.error("Error fetching stock out:", err);
+        addDebugInfo("getStockOutById", { id }, err);
       } finally {
         setIsLoading(false);
       }
@@ -121,6 +169,7 @@ export default function StockOutScanPage() {
   useEffect(() => {
     if (!isLoading && barcodeInputRef.current) {
       barcodeInputRef.current.focus();
+      console.log("Auto-focused barcode input");
     }
   }, [isLoading]);
 
@@ -128,10 +177,27 @@ export default function StockOutScanPage() {
   const handleBarcodeScan = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!token || !barcodeInput.trim()) return;
+    console.log("=== Starting barcode scan ===");
+    console.log("Input values:", { barcode: barcodeInput, quantity, hasToken: !!token });
+    
+    if (!token) {
+      const errorMsg = "Token tidak ditemukan. Silakan login kembali.";
+      setError(errorMsg);
+      console.error(errorMsg);
+      return;
+    }
+    
+    if (!barcodeInput.trim()) {
+      const errorMsg = "Barcode tidak boleh kosong";
+      setError(errorMsg);
+      console.warn(errorMsg);
+      return;
+    }
     
     if (quantity < 1) {
-      setError("Quantity harus minimal 1");
+      const errorMsg = "Quantity harus minimal 1";
+      setError(errorMsg);
+      console.warn(errorMsg);
       return;
     }
 
@@ -139,35 +205,50 @@ export default function StockOutScanPage() {
     setError(null);
     setSuccessMessage(null);
 
+    const scanData = {
+      barcode: barcodeInput.trim(),
+      quantity: quantity
+    };
+
+    console.log("Prepared scan data:", scanData);
+    addDebugInfo("scanBarcodeForStockOut", scanData);
+
     try {
-      // Lakukan scan barcode untuk stock out
-      const response = await scanBarcodeForStockOut(token, barcodeInput.trim(), quantity);
+      console.log("Calling scanBarcodeForStockOut...");
+      
+      const response = await scanBarcodeForStockOut(token, scanData.barcode, scanData.quantity);
+      
+      console.log("Scan response received:", response);
+      addDebugInfo("scanBarcodeForStockOut", scanData, null);
       
       if (response.code === "200" && response.data) {
-        const scanData = response.data;
+        const scanResult = response.data;
+        console.log("Scan successful, processing result:", scanResult);
         
         // Tambahkan ke transaction history
         const newTransaction: ScanTransaction = {
           id: Date.now().toString(),
           timestamp: new Date().toISOString(),
-          barcode: scanData.transaction.scanned_barcode,
-          product_name: scanData.product.name,
-          part_number: scanData.product.part_number,
-          unit_type: scanData.transaction.unit_type,
-          quantity: scanData.transaction.quantity_scanned,
-          pieces_deducted: scanData.transaction.pieces_deducted,
-          price_per_piece: scanData.transaction.price_per_piece,
-          total_amount: scanData.transaction.total_amount_deducted,
-          remaining_stock: scanData.stock_info.total_remaining_all_locations,
+          barcode: scanResult.transaction.scanned_barcode,
+          product_name: scanResult.product.name,
+          part_number: scanResult.product.part_number,
+          unit_type: scanResult.transaction.unit_type,
+          quantity: scanResult.transaction.quantity_scanned,
+          pieces_deducted: scanResult.transaction.pieces_deducted,
+          price_per_piece: scanResult.transaction.price_per_piece,
+          total_amount: scanResult.transaction.total_amount_deducted,
+          remaining_stock: scanResult.stock_info.total_remaining_all_locations,
         };
         
-        setScanTransactions(prev => [newTransaction, ...prev]);
+        setScanTransactions(prev => {
+          const updated = [newTransaction, ...prev];
+          console.log("Updated transaction list:", updated.length, "items");
+          return updated;
+        });
         
-        setSuccessMessage(
-          `✅ ${scanData.product.name} berhasil di-scan! 
-          ${scanData.transaction.pieces_deducted} pieces dikurangi. 
-          Sisa stock: ${scanData.stock_info.total_remaining_all_locations} pieces`
-        );
+        const successMsg = `✅ ${scanResult.product.name} berhasil di-scan! ${scanResult.transaction.pieces_deducted} pieces dikurangi. Sisa stock: ${scanResult.stock_info.total_remaining_all_locations} pieces`;
+        setSuccessMessage(successMsg);
+        console.log("Success:", successMsg);
         
         // Reset form
         setBarcodeInput("");
@@ -179,39 +260,53 @@ export default function StockOutScanPage() {
         setTimeout(() => {
           if (barcodeInputRef.current) {
             barcodeInputRef.current.focus();
+            console.log("Refocused barcode input");
           }
         }, 100);
         
       } else {
-        throw new Error(response.message || "Failed to scan barcode");
+        const errorMsg = response.message || "Scan gagal - response tidak valid";
+        console.error("Scan failed with response:", response);
+        throw new Error(errorMsg);
       }
     } catch (err: any) {
-      console.error("Scan error:", err);
+      console.error("=== Scan error occurred ===");
+      console.error("Error details:", err);
       
-      // Parse error message untuk user-friendly display
+      addDebugInfo("scanBarcodeForStockOut", scanData, err);
+      
+      // Enhanced error parsing
       let errorMessage = "Gagal scan barcode";
-      try {
-        const errorData = JSON.parse(err.message);
-        errorMessage = errorData.message || errorMessage;
-        
-        // Tampilkan info detail jika insufficient stock
-        if (errorData.data) {
-          const data = errorData.data;
-          setError(
-            `${errorMessage}. 
-            Product: ${data.product_name} (${data.part_number}). 
-            Diminta: ${data.requested_pieces} pieces, 
-            Tersedia: ${data.available_pieces} pieces`
-          );
-          return;
+      
+      if (err.message) {
+        try {
+          // Try parsing JSON error
+          const errorData = JSON.parse(err.message);
+          console.log("Parsed error data:", errorData);
+          
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+          
+          // Tampilkan info detail jika insufficient stock
+          if (errorData.data) {
+            const data = errorData.data;
+            const detailedError = `${errorMessage}.\nProduct: ${data.product_name} (${data.part_number}).\nDiminta: ${data.requested_pieces} pieces, Tersedia: ${data.available_pieces} pieces`;
+            setError(detailedError);
+            console.error("Detailed error:", detailedError);
+            return;
+          }
+        } catch (parseError) {
+          console.log("Error message is not JSON, using as-is");
+          errorMessage = err.message;
         }
-      } catch {
-        errorMessage = err.message || errorMessage;
       }
       
       setError(errorMessage);
+      console.error("Final error message:", errorMessage);
     } finally {
       setIsScanning(false);
+      console.log("=== Scan operation completed ===");
     }
   };
 
@@ -219,18 +314,27 @@ export default function StockOutScanPage() {
   const handleCheckStock = async () => {
     if (!token || !barcodeInput.trim()) return;
 
+    console.log("Checking stock for barcode:", barcodeInput);
+    addDebugInfo("getStockByBarcode", { barcode: barcodeInput });
+
     try {
       setError(null);
       const response = await getStockByBarcode(token, barcodeInput.trim());
       
+      console.log("Stock check response:", response);
+      
       if (response.code === "200" && response.data) {
         setCurrentProductStock(response.data);
         setShowStockInfo(true);
+        console.log("Stock info displayed");
       }
     } catch (err: any) {
-      setError("Product tidak ditemukan untuk barcode ini");
+      const errorMsg = "Product tidak ditemukan untuk barcode ini";
+      setError(errorMsg);
       setCurrentProductStock(null);
       setShowStockInfo(false);
+      console.error("Stock check error:", err);
+      addDebugInfo("getStockByBarcode", { barcode: barcodeInput }, err);
     }
   };
 
@@ -238,18 +342,25 @@ export default function StockOutScanPage() {
   const handleCompleteStockOut = async () => {
     if (!token || !stockOut) return;
     
+    console.log("Completing stock out:", stockOut.id);
+    
     try {
       setIsLoading(true);
       const response = await completeStockOut(token, stockOut.id);
       
       if (response.code === "200") {
-        setSuccessMessage("Stock Out berhasil diselesaikan!");
+        const successMsg = "Stock Out berhasil diselesaikan!";
+        setSuccessMessage(successMsg);
+        console.log(successMsg);
+        
         setTimeout(() => {
           router.push(`/stock/out/${stockOut.id}`);
         }, 2000);
       }
     } catch (err: any) {
-      setError(err.message || "Gagal menyelesaikan stock out");
+      const errorMsg = err.message || "Gagal menyelesaikan stock out";
+      setError(errorMsg);
+      console.error("Complete stock out error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -284,6 +395,9 @@ export default function StockOutScanPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4">Loading scan interface...</p>
+          {debugMode && (
+            <p className="text-xs text-gray-500 mt-2">Debug mode: ON</p>
+          )}
         </div>
       </div>
     );
@@ -297,6 +411,18 @@ export default function StockOutScanPage() {
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>Stock Out request not found</AlertDescription>
         </Alert>
+        {debugMode && debugInfo.length > 0 && (
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-sm">Debug Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                {JSON.stringify(debugInfo[0], null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
@@ -309,6 +435,7 @@ export default function StockOutScanPage() {
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Scan className="h-6 w-6 text-blue-600" />
             Stock Out Scanner
+            {debugMode && <Badge variant="outline" className="ml-2">DEBUG</Badge>}
           </h1>
           <p className="text-gray-600">
             {stockOut.reference_number} - {stockOut.department_name}
@@ -342,7 +469,7 @@ export default function StockOutScanPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
         </Alert>
       )}
 
@@ -352,6 +479,39 @@ export default function StockOutScanPage() {
           <AlertTitle>Success</AlertTitle>
           <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
+      )}
+
+      {/* Debug Panel */}
+      {debugMode && debugInfo.length > 0 && (
+        <Card className="border-yellow-200 bg-gray-800">
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Debug Information
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDebugInfo([])}
+                className="ml-auto"
+              >
+                Clear
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {debugInfo.map((info, index) => (
+                <div key={index} className="text-xs bg-white p-2 rounded border">
+                  <div className="font-medium text-blue-600">{info.endpoint}</div>
+                  <div className="text-gray-500">{info.timestamp}</div>
+                  {info.error && (
+                    <div className="text-red-600 mt-1">Error: {info.error.message}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -378,6 +538,7 @@ export default function StockOutScanPage() {
                       placeholder="Scan atau ketik barcode di sini..."
                       autoComplete="off"
                       className="text-lg font-mono"
+                      disabled={isScanning}
                     />
                   </div>
                   
@@ -390,6 +551,7 @@ export default function StockOutScanPage() {
                       value={quantity}
                       onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                       className="text-lg"
+                      disabled={isScanning}
                     />
                   </div>
                 </div>
@@ -417,7 +579,7 @@ export default function StockOutScanPage() {
                     type="button"
                     variant="outline"
                     onClick={handleCheckStock}
-                    disabled={!barcodeInput.trim()}
+                    disabled={!barcodeInput.trim() || isScanning}
                     className="gap-2"
                   >
                     <Eye className="h-4 w-4" />
@@ -428,8 +590,8 @@ export default function StockOutScanPage() {
 
               {/* Stock Info Display */}
               {showStockInfo && currentProductStock && (
-                <div className="mt-4 p-4 bg-gray-800 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-200 mb-2">Stock Information</h4>
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-800 mb-2">Stock Information</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <p><strong>Product:</strong> {currentProductStock.product.name}</p>
