@@ -2,9 +2,6 @@
 
 import { fetchWithAuth } from "./config";
 import { 
-  AUTH_ENDPOINTS, 
-  WAREHOUSE_ENDPOINTS, 
-  SUPPLIER_ENDPOINTS,
   CATEGORY_ENDPOINTS,
   UNIT_ENDPOINTS,
   DEPARTMENT_ENDPOINTS,
@@ -15,11 +12,7 @@ import {
   REPORT_ENDPOINTS
 } from "./endpoints";
 import { 
-  LoginResponse, 
   ApiResponse,
-  Warehouse,
-  Container,
-  Rack,
   Supplier,
   Category,
   Unit,
@@ -42,179 +35,6 @@ import {
   BarcodeStockResponse,
   BarcodeScan
 } from "./types";
-
-//=============================================================================
-// AUTH SERVICES
-//=============================================================================
-
-export const loginUser = async (
-  username: string,
-  password: string
-): Promise<LoginResponse> => {
-  try {
-    const response = await fetchWithAuth(AUTH_ENDPOINTS.LOGIN, {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-    });
-
-    // Check if response is in the expected format
-    if (response && response.token) {
-      return response;
-    } else if (response && response.value && response.value.token) {
-      return {
-        ...response,
-        token: response.value.token,
-      };
-    } else {
-      throw new Error("Invalid response format from login API");
-    }
-  } catch (error) {
-    console.error("Login error:", error);
-    throw error;
-  }
-};
-
-//=============================================================================
-// WAREHOUSE SERVICES
-//=============================================================================
-
-export const createWarehouse = async (
-  token: string,
-  name: string,
-  description?: string
-): Promise<ApiResponse<Warehouse>> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.BASE,
-    {
-      method: "POST",
-      body: JSON.stringify({ name, description }),
-    },
-    token
-  );
-};
-
-export const getAllWarehouses = async (
-  token: string
-): Promise<ApiResponse<Warehouse[]>> => {
-  return fetchWithAuth(WAREHOUSE_ENDPOINTS.BASE, {}, token);
-};
-
-export const createContainer = async (
-  token: string,
-  warehouse_id: string,
-  name: string,
-  description?: string
-): Promise<ApiResponse<Container>> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.CONTAINERS,
-    {
-      method: "POST",
-      body: JSON.stringify({ warehouse_id, name, description }),
-    },
-    token
-  );
-};
-
-export const getContainersByWarehouse = async (
-  token: string,
-  warehouseId: string
-): Promise<ApiResponse<Container[]>> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.CONTAINERS_BY_WAREHOUSE(warehouseId),
-    {},
-    token
-  );
-};
-
-export const createRack = async (
-  token: string,
-  container_id: string,
-  name: string,
-  description?: string
-): Promise<ApiResponse<Rack>> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.RACKS,
-    {
-      method: "POST",
-      body: JSON.stringify({ container_id, name, description }),
-    },
-    token
-  );
-};
-
-export const getRacksByContainer = async (
-  token: string,
-  containerId: string
-): Promise<ApiResponse<Rack[]>> => {
-  return fetchWithAuth(
-    WAREHOUSE_ENDPOINTS.RACKS_BY_CONTAINER(containerId),
-    {},
-    token
-  );
-};
-
-//=============================================================================
-// SUPPLIER SERVICES
-//=============================================================================
-
-export const createSupplier = async (
-  token: string,
-  name: string,
-  contact_person?: string,
-  phone?: string,
-  email?: string,
-  address?: string
-): Promise<ApiResponse<Supplier>> => {
-  return fetchWithAuth(
-    SUPPLIER_ENDPOINTS.BASE,
-    {
-      method: "POST",
-      body: JSON.stringify({ name, contact_person, phone, email, address }),
-    },
-    token
-  );
-};
-
-export const getAllSuppliers = async (
-  token: string
-): Promise<ApiResponse<Supplier[]>> => {
-  return fetchWithAuth(SUPPLIER_ENDPOINTS.BASE, {}, token);
-};
-
-export const getSupplierById = async (
-  token: string,
-  id: string
-): Promise<ApiResponse<Supplier>> => {
-  return fetchWithAuth(SUPPLIER_ENDPOINTS.DETAIL(id), {}, token);
-};
-
-export const updateSupplier = async (
-  token: string,
-  id: string,
-  data: Partial<Supplier>
-): Promise<ApiResponse<Supplier>> => {
-  return fetchWithAuth(
-    SUPPLIER_ENDPOINTS.DETAIL(id),
-    {
-      method: "PUT",
-      body: JSON.stringify(data),
-    },
-    token
-  );
-};
-
-export const deleteSupplier = async (
-  token: string,
-  id: string
-): Promise<ApiResponse<void>> => {
-  return fetchWithAuth(
-    SUPPLIER_ENDPOINTS.DETAIL(id),
-    {
-      method: "DELETE",
-    },
-    token
-  );
-};
 
 //=============================================================================
 // CATEGORY SERVICES

@@ -1,53 +1,11 @@
 // lib/api/types.ts
 
-// Authentication types
-export interface LoginResponse {
-  code: string;
-  messages?: string;
-  message?: string;
-  token: string;
-  user?: {
-    id: number;
-    name: string;
-    username: string;
-    divisi: string;
-    avatar?: string;
-  };
-}
-
-// Common types
+// Common API response wrapper
 export interface ApiResponse<T> {
   code: string;
   message: string;
   data?: T;
   error?: string;
-}
-
-// Warehouse types
-export interface Warehouse {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Container {
-  id: string;
-  warehouse_id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Rack {
-  id: string;
-  container_id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 // Supplier types

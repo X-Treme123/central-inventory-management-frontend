@@ -1,25 +1,5 @@
 // lib/api/endpoints.ts
 
-// Auth endpoints
-export const AUTH_ENDPOINTS = {
-  LOGIN: '/auth/login',
-} as const;
-
-// Warehouse endpoints
-export const WAREHOUSE_ENDPOINTS = {
-  BASE: '/warehouse',
-  CONTAINERS: '/warehouse/containers',
-  CONTAINERS_BY_WAREHOUSE: (warehouseId: string) => `/warehouse/containers/${warehouseId}`,
-  RACKS: '/warehouse/racks',
-  RACKS_BY_CONTAINER: (containerId: string) => `/warehouse/racks/${containerId}`,
-} as const;
-
-// Supplier endpoints
-export const SUPPLIER_ENDPOINTS = {
-  BASE: '/supplier',
-  DETAIL: (id: string) => `/supplier/${id}`,
-} as const;
-
 // Category endpoints
 export const CATEGORY_ENDPOINTS = {
   BASE: '/category',
