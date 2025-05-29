@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { getCategoryById, updateCategory } from '@/features/dashboard/categories/api/index';
+import { getCategoryById, updateCategory } from '@/features/pages/categories/api/index';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,14 +13,8 @@ import { Card } from '@/components/ui/card';
 import { AlertCircle, ArrowLeft, Loader2, Save } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 import { useApi } from '@/lib/hooks/useApi';
-import { Category } from '@/features/dashboard/categories/api/index';
+import { Category } from '@/features/pages/categories/api/index';
 import { toast } from 'sonner';
-
-interface EditCategoryPageProps {
-  params: {
-    id: string;
-  };
-}
 
 export default function EditCategoryPage() {
   const router = useRouter();

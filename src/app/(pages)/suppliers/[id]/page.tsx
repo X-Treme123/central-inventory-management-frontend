@@ -1,5 +1,5 @@
 // app/(pages)/suppliers/[id]/page.tsx
-import { SupplierDetailPage } from '@/features/dashboard/suppliers/components';
+import { SupplierDetailPage } from '@/features/pages/suppliers/components';
 import type { Metadata } from 'next';
 
 interface SupplierDetailProps {

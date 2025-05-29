@@ -8,18 +8,6 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-// Supplier types
-export interface Supplier {
-  id: string;
-  name: string;
-  contact_person: string | null;
-  phone: string | null;
-  email: string | null;
-  address: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 // Category types
 export interface Category {
   id: string;
@@ -245,7 +233,7 @@ export interface ProductBarcode {
 }
 
 //=============================================================================
-// STOCK OUT TYPES - Updated dengan barcode support
+// STOCK OUT TYPES - Updated dengan barcode support dan workflow
 //=============================================================================
 
 export interface StockOut {
@@ -276,7 +264,7 @@ export interface StockOutItem {
   total_pieces: number;
   price_per_unit: number;
   total_amount: number;
-  remaining_stock?: number;
+  remaining_stock: number | null;
   // New barcode fields
   scanned_barcode?: string;
   unit_type?: 'piece' | 'pack' | 'box';
@@ -285,78 +273,61 @@ export interface StockOutItem {
   // Populated fields
   product_name?: string;
   part_number?: string;
+  pieces_per_pack?: number;
+  packs_per_box?: number;
   unit_name?: string;
   unit_abbreviation?: string;
-  barcode_count?: number;
 }
 
-export interface StockOutScanResponse {
+export interface AddStockOutItemByBarcodeForm {
+  barcode: string;
+  requested_quantity: number;
+  actual_pieces?: number; // Optional untuk flexibility
+  price_per_unit: number;
+  pieces_per_pack?: number; // Override jika diperlukan
+  packs_per_box?: number; // Override jika diperlukan
+}
+
+export interface StockOutBarcodeScanResponse {
   product: {
     id: string;
     name: string;
     part_number: string;
+    description: string;
+    category_name: string;
+    base_unit_name: string;
+    price: number;
   };
-  transaction: {
+  scan_info: {
     scanned_barcode: string;
-    unit_type: 'piece' | 'pack' | 'box';
-    quantity_scanned: number;
-    pieces_deducted: number;
-    price_per_piece: number;
-    total_amount_deducted: number;
+    detected_unit_type: 'piece' | 'pack' | 'box';
+    available_units: number;
+    total_pieces_in_stock: number;
+    storage_locations: number;
   };
-  stock_info: {
-    location: {
-      warehouse: string;
-      container: string;
-      rack: string;
-    };
-    previous_stock: number;
-    remaining_at_location: number;
-    total_remaining_all_locations: number;
-  };
-  conversion: {
+  unit_conversion: {
     pieces_per_pack: number;
     packs_per_box: number;
+    total_pieces_per_box: number;
   };
 }
 
-export interface BarcodeStockResponse {
-  product: {
-    id: string;
-    name: string;
-    part_number: string;
-  };
-  barcode_info: {
-    scanned_barcode: string;
-    unit_type: 'piece' | 'pack' | 'box';
-  };
-  stock_summary: {
-    total_pieces_all_locations: number;
-    available_units_for_scanned_type: number;
-    number_of_locations: number;
-  };
-  stock_locations: Array<{
-    id: string;
-    warehouse_id: string;
-    container_id: string;
-    rack_id: string;
-    total_pieces: number;
-    total_amount: number;
-    warehouse_name: string;
-    container_name: string;
-    rack_name: string;
-  }>;
-  conversion: {
-    pieces_per_pack: number;
-    packs_per_box: number;
-  };
+// Stock Out workflow states
+export type StockOutStatus = 'pending' | 'approved' | 'completed' | 'rejected';
+
+export interface StockOutWorkflowActions {
+  canAddItems: boolean;
+  canApprove: boolean;
+  canComplete: boolean;
+  canReject: boolean;
 }
 
-export interface StockOutBarcode {
-  id: string;
-  stock_out_item_id: string;
-  barcode_id: string;
-  created_at: string;
+// Form interfaces
+export interface CreateStockOutForm {
+  reference_number: string;
+  department_id: string;
+  requestor_name: string;
+  notes?: string;
 }
 
 //=============================================================================

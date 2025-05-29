@@ -50,36 +50,23 @@ export const STOCK_IN_ENDPOINTS = {
   BARCODES: (itemId: string) => `/stock-in/items/${itemId}/barcodes`,
 } as const;
 
+export const STOCK_OUT_ENDPOINTS = {
+  BASE: '/stock-out',
+  DETAIL: (id: string) => `/stock-out/${id}`,
+  // Workflow endpoints
+  APPROVE: (id: string) => `/stock-out/${id}/approve`,
+  COMPLETE: (id: string) => `/stock-out/${id}/complete`,
+  // Items management
+  ITEMS_SCAN: (stockOutId: string) => `/stock-out/${stockOutId}/items/scan`,
+  // Barcode scanning for product info
+  SCAN_BARCODE: (barcode: string) => `/stock-out/barcode/${barcode}`,
+} as const;
+
 // Defect endpoints
 export const DEFECT_ENDPOINTS = {
   BASE: '/defect',
   DETAIL: (id: string) => `/defect/${id}`,
   STATUS: (id: string) => `/defect/${id}/status`,
-} as const;
-
-//=============================================================================
-// STOCK OUT ENDPOINTS - Updated dengan barcode scanning support
-//=============================================================================
-
-export const STOCK_OUT_ENDPOINTS = {
-  BASE: '/stock-out',
-  DETAIL: (id: string) => `/stock-out/${id}`,
-  
-  // NEW: Direct scanning endpoints (POS-style) - MAIN FEATURE
-  SCAN: '/stock-out/scan',                              // POST untuk direct scan
-  STOCK_CHECK: (barcode: string) => `/stock-out/stock/${barcode}`, // GET untuk check stock
-  
-  // Original items endpoints (untuk request-based system)
-  ITEMS: (stockOutId: string) => `/stock-out/${stockOutId}/items`,
-  ITEMS_SCAN: (stockOutId: string) => `/stock-out/${stockOutId}/items/scan`,
-  
-  // Scan history and analytics
-  SCAN_HISTORY: '/stock-out/history/scans',
-  SUMMARY: '/stock-out/summary',
-  
-  // Approval workflow
-  APPROVE: (id: string) => `/stock-out/${id}/approve`,
-  COMPLETE: (id: string) => `/stock-out/${id}/complete`,
 } as const;
 
 //=============================================================================

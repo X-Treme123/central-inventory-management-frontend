@@ -1,5 +1,5 @@
 // app/(pages)/suppliers/page.tsx
-import { SuppliersPage } from '@/features/dashboard/suppliers/components';
+import { SuppliersPage } from '@/features/pages/suppliers/components';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

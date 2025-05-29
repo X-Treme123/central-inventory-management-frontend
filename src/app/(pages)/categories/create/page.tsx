@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { createCategory } from "@/features/dashboard/categories/api/index";
+import { createCategory } from "@/features/pages/categories/api/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

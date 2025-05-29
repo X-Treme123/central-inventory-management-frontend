@@ -29,7 +29,7 @@ import {
   Warehouses,
   Container,
   Rack,
-} from "@/features/dashboard/warehouses/api/index";
+} from "@/features/pages/warehouses/api/index";
 import type {
   StockIn,
   BarcodeScanResponse,

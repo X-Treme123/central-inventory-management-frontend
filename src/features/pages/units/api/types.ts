@@ -1,13 +1,10 @@
-// features/dashboard/suppliers/api/types.ts
+// features/dashboard/units/api/types.ts
 
-// Supplier types
-export interface Supplier {
+// Unit types
+export interface Unit {
   id: string;
   name: string;
-  contact_person: string | null;
-  phone: string | null;
-  email: string | null;
-  address: string | null;
+  abbreviation: string;
   created_at: string;
   updated_at: string;
 }

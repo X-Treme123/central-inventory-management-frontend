@@ -5,8 +5,8 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/lib/hooks/useApi";
-import { getAllCategories, deleteCategory } from "@/features/dashboard/categories/api/index";
-import { Category } from "@/features/dashboard/categories/api/index";
+import { getAllCategories, deleteCategory } from "@/features/pages/categories/api/index";
+import { Category } from "@/features/pages/categories/api/index";
 import { useAuth } from "@/context/AuthContext";
 import {
   Search,

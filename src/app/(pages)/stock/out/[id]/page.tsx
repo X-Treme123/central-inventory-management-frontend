@@ -1,588 +1,633 @@
-// app/(dashboard)/stock/out/[id]/page.tsx
+// app/stock/out/[id]/page.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   getStockOutById,
-  scanBarcodeForStockOut,
-  getStockByBarcode,
+  approveStockOut,
   completeStockOut,
+  getStockOutWorkflowActions,
 } from "@/lib/api/services";
-import { StockOut, StockOutScanResponse } from "@/lib/api/types";
-import Cookies from "js-cookie";
+import type { StockOut, StockOutStatus } from "@/lib/api/types";
 import {
-  Scan,
-  Package,
   CheckCircle2,
   AlertCircle,
-  BarChart3,
-  Clock,
-  Trash2,
   ChevronLeft,
-  ShoppingCart,
-  Zap,
-  TrendingDown,
+  Plus,
+  Package,
+  Layers,
+  Box,
+  Clock,
+  Check,
+  User,
+  Building,
+  Calendar,
+  FileText,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
   Eye,
+  Settings,
 } from "lucide-react";
 
-interface ScanTransaction {
-  id: string;
-  timestamp: string;
-  barcode: string;
-  product_name: string;
-  part_number: string;
-  unit_type: string;
-  quantity: number;
-  pieces_deducted: number;
-  price_per_piece: number;
-  total_amount: number;
-  remaining_stock: number;
-}
-
-export default function StockOutScanPage() {
-  const { id } = useParams();
+export default function StockOutDetailPage() {
+  const { token } = useAuth();
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
-  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const { id } = useParams();
 
-  // State untuk stock out header
   const [stockOut, setStockOut] = useState<StockOut | null>(null);
-  
-  // State untuk scanning
-  const [barcodeInput, setBarcodeInput] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanTransactions, setScanTransactions] = useState<ScanTransaction[]>([]);
-  
-  // State untuk stock check
-  const [currentProductStock, setCurrentProductStock] = useState<any>(null);
-  const [showStockInfo, setShowStockInfo] = useState(false);
-  
-  // UI states
+  const [isLoading, setIsLoading] = useState(true);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Get token from cookie
   useEffect(() => {
-    const storedToken = Cookies.get("token");
-    if (storedToken) {
-      setToken(storedToken);
-    } else {
-      router.push("/login");
+    if (token && id) {
+      loadStockOutData();
     }
-  }, [router]);
-
-  // Fetch stock out details
-  useEffect(() => {
-    if (!token || !id) return;
-
-    const fetchStockOut = async () => {
-      setIsLoading(true);
-      try {
-        const response = await getStockOutById(token, id as string);
-        if (response.data) {
-          setStockOut(response.data);
-          
-          // Check status - hanya allow scan jika masih pending atau approved
-          if (response.data.status === 'completed' || response.data.status === 'rejected') {
-            setError("Cannot scan items for completed or rejected stock out request");
-          }
-        } else {
-          setError("Stock out request not found");
-        }
-      } catch (err: any) {
-        setError(err.message || "Error loading stock out details");
-        console.error("Error fetching stock out:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStockOut();
   }, [token, id]);
 
-  // Auto focus ke barcode input
-  useEffect(() => {
-    if (!isLoading && barcodeInputRef.current) {
-      barcodeInputRef.current.focus();
-    }
-  }, [isLoading]);
-
-  // Handle barcode scan/input
-  const handleBarcodeScan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!token || !barcodeInput.trim()) return;
-    
-    if (quantity < 1) {
-      setError("Quantity harus minimal 1");
-      return;
-    }
-
-    setIsScanning(true);
-    setError(null);
-    setSuccessMessage(null);
-
+  const loadStockOutData = async () => {
     try {
-      // Lakukan scan barcode untuk stock out
-      const response = await scanBarcodeForStockOut(token, barcodeInput.trim(), quantity);
+      const response = await getStockOutById(token!, id as string);
       
       if (response.code === "200" && response.data) {
-        const scanData = response.data;
-        
-        // Tambahkan ke transaction history
-        const newTransaction: ScanTransaction = {
-          id: Date.now().toString(),
-          timestamp: new Date().toISOString(),
-          barcode: scanData.transaction.scanned_barcode,
-          product_name: scanData.product.name,
-          part_number: scanData.product.part_number,
-          unit_type: scanData.transaction.unit_type,
-          quantity: scanData.transaction.quantity_scanned,
-          pieces_deducted: scanData.transaction.pieces_deducted,
-          price_per_piece: scanData.transaction.price_per_piece,
-          total_amount: scanData.transaction.total_amount_deducted,
-          remaining_stock: scanData.stock_info.total_remaining_all_locations,
-        };
-        
-        setScanTransactions(prev => [newTransaction, ...prev]);
-        
-        setSuccessMessage(
-          `✅ ${scanData.product.name} berhasil di-scan! 
-          ${scanData.transaction.pieces_deducted} pieces dikurangi. 
-          Sisa stock: ${scanData.stock_info.total_remaining_all_locations} pieces`
-        );
-        
-        // Reset form
-        setBarcodeInput("");
-        setQuantity(1);
-        setCurrentProductStock(null);
-        setShowStockInfo(false);
-        
-        // Focus kembali ke barcode input
-        setTimeout(() => {
-          if (barcodeInputRef.current) {
-            barcodeInputRef.current.focus();
-          }
-        }, 100);
-        
+        setStockOut(response.data);
       } else {
-        throw new Error(response.message || "Failed to scan barcode");
+        setError("Stock out request not found");
       }
     } catch (err: any) {
-      console.error("Scan error:", err);
-      
-      // Parse error message untuk user-friendly display
-      let errorMessage = "Gagal scan barcode";
-      try {
-        const errorData = JSON.parse(err.message);
-        errorMessage = errorData.message || errorMessage;
-        
-        // Tampilkan info detail jika insufficient stock
-        if (errorData.data) {
-          const data = errorData.data;
-          setError(
-            `${errorMessage}. 
-            Product: ${data.product_name} (${data.part_number}). 
-            Diminta: ${data.requested_pieces} pieces, 
-            Tersedia: ${data.available_pieces} pieces`
-          );
-          return;
-        }
-      } catch {
-        errorMessage = err.message || errorMessage;
-      }
-      
-      setError(errorMessage);
-    } finally {
-      setIsScanning(false);
-    }
-  };
-
-  // Handle check stock by barcode (tanpa mengurangi stock)
-  const handleCheckStock = async () => {
-    if (!token || !barcodeInput.trim()) return;
-
-    try {
-      setError(null);
-      const response = await getStockByBarcode(token, barcodeInput.trim());
-      
-      if (response.code === "200" && response.data) {
-        setCurrentProductStock(response.data);
-        setShowStockInfo(true);
-      }
-    } catch (err: any) {
-      setError("Product tidak ditemukan untuk barcode ini");
-      setCurrentProductStock(null);
-      setShowStockInfo(false);
-    }
-  };
-
-  // Handle complete stock out
-  const handleCompleteStockOut = async () => {
-    if (!token || !stockOut) return;
-    
-    try {
-      setIsLoading(true);
-      const response = await completeStockOut(token, stockOut.id);
-      
-      if (response.code === "200") {
-        setSuccessMessage("Stock Out berhasil diselesaikan!");
-        setTimeout(() => {
-          router.push(`/stock/out/${stockOut.id}`);
-        }, 2000);
-      }
-    } catch (err: any) {
-      setError(err.message || "Gagal menyelesaikan stock out");
+      setError(err.message || "Error loading stock out data");
+      console.error("Error loading stock out:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const handleApprove = async () => {
+    if (!stockOut || !token) return;
+
+    setIsActionLoading(true);
+    setError(null);
+
+    try {
+      const response = await approveStockOut(token, stockOut.id);
+      
+      if (response.code === "200") {
+        setSuccessMessage("Stock out request approved successfully!");
+        await loadStockOutData(); // Reload data
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        setError(response.message || "Failed to approve stock out");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to approve stock out");
+      console.error("Error approving stock out:", err);
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  // Format timestamp
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString("id-ID", {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+  const handleComplete = async () => {
+    if (!stockOut || !token) return;
+
+    setIsActionLoading(true);
+    setError(null);
+
+    try {
+      const response = await completeStockOut(token, stockOut.id);
+      
+      if (response.code === "200") {
+        setSuccessMessage("Stock out request completed successfully!");
+        await loadStockOutData(); // Reload data
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        setError(response.message || "Failed to complete stock out");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to complete stock out");
+      console.error("Error completing stock out:", err);
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  // Calculate totals
-  const totalItems = scanTransactions.length;
-  const totalPieces = scanTransactions.reduce((sum, t) => sum + t.pieces_deducted, 0);
-  const totalAmount = scanTransactions.reduce((sum, t) => sum + t.total_amount, 0);
+  // Helper functions
+  const getStatusBadgeColor = (status: StockOutStatus) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "approved":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "rejected":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+    }
+  };
+
+  const getStatusIcon = (status: StockOutStatus) => {
+    switch (status) {
+      case "completed":
+        return <CheckCircle className="h-4 w-4" />;
+      case "approved":
+        return <Check className="h-4 w-4" />;
+      case "pending":
+        return <Clock className="h-4 w-4" />;
+      case "rejected":
+        return <XCircle className="h-4 w-4" />;
+      default:
+        return <AlertTriangle className="h-4 w-4" />;
+    }
+  };
+
+  const getUnitTypeIcon = (unitType: string) => {
+    switch (unitType) {
+      case "piece": return <Package className="h-3 w-3" />;
+      case "pack": return <Layers className="h-3 w-3" />;
+      case "box": return <Box className="h-3 w-3" />;
+      default: return <Package className="h-3 w-3" />;
+    }
+  };
+
+  const getUnitTypeColor = (unitType: string) => {
+    switch (unitType) {
+      case "piece": return "bg-blue-500";
+      case "pack": return "bg-green-500";
+      case "box": return "bg-purple-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  const calculateTotalValue = () => {
+    if (!stockOut?.items) return 0;
+    return stockOut.items.reduce((sum, item) => sum + item.total_amount, 0);
+  };
+
+  const calculateTotalPieces = () => {
+    if (!stockOut?.items) return 0;
+    return stockOut.items.reduce((sum, item) => sum + item.total_pieces, 0);
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full p-6">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4">Loading scan interface...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading stock out details...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error && !stockOut) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button className="mt-4" onClick={() => router.push("/stock/out")}>
+          <ChevronLeft className="h-4 w-4 mr-2" />
+          Back to Stock Out List
+        </Button>
       </div>
     );
   }
 
   if (!stockOut) {
     return (
-      <div className="p-6">
-        <Alert variant="destructive">
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>Stock Out request not found</AlertDescription>
+          <AlertTitle>Not Found</AlertTitle>
+          <AlertDescription>Stock out request not found.</AlertDescription>
         </Alert>
+        <Button className="mt-4" onClick={() => router.push("/stock/out")}>
+          <ChevronLeft className="h-4 w-4 mr-2" />
+          Back to Stock Out List
+        </Button>
       </div>
     );
   }
 
+  const workflowActions = getStockOutWorkflowActions(stockOut.status);
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Scan className="h-6 w-6 text-blue-600" />
-            Stock Out Scanner
-          </h1>
-          <p className="text-gray-600">
-            {stockOut.reference_number} - {stockOut.department_name}
-          </p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Stock Out Details</h1>
+              <p className="text-gray-600">{stockOut.reference_number}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push("/stock/out")}>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Back to List
+              </Button>
+              {workflowActions.canAddItems && (
+                <Button
+                  onClick={() => router.push(`/stock/out/add-item/${stockOut.id}`)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Items
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push(`/stock/out/${stockOut.id}`)}
-            className="gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back to Details
-          </Button>
-          
-          {scanTransactions.length > 0 && (
-            <Button 
-              onClick={handleCompleteStockOut}
-              className="gap-2"
-              disabled={isLoading}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Complete Stock Out
-            </Button>
-          )}
-        </div>
-      </div>
 
-      {/* Alert Messages */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+        {/* Alert Messages */}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {successMessage && (
-        <Alert className="bg-green-50 border-green-200 text-green-800">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertTitle>Success</AlertTitle>
-          <AlertDescription>{successMessage}</AlertDescription>
-        </Alert>
-      )}
+        {successMessage && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Success</AlertTitle>
+            <AlertDescription className="text-green-700">
+              {successMessage}
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Scanning Interface */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Barcode Scanner Card */}
-          <Card className="border-2 border-blue-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-blue-600" />
-                Scan Barcode untuk Stock Out
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleBarcodeScan} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2 space-y-2">
-                    <Label htmlFor="barcode">Barcode Product</Label>
-                    <Input
-                      ref={barcodeInputRef}
-                      id="barcode"
-                      value={barcodeInput}
-                      onChange={(e) => setBarcodeInput(e.target.value)}
-                      placeholder="Scan atau ketik barcode di sini..."
-                      autoComplete="off"
-                      className="text-lg font-mono"
-                    />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Stock Out Information */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Header Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Stock Out Information</span>
+                  <Badge className={getStatusBadgeColor(stockOut.status)}>
+                    {getStatusIcon(stockOut.status)}
+                    <span className="ml-1 capitalize">{stockOut.status}</span>
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-600">Reference Number</p>
+                        <p className="font-medium">{stockOut.reference_number}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-600">Department</p>
+                        <p className="font-medium">{stockOut.department_name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-600">Requestor</p>
+                        <p className="font-medium">{stockOut.requestor_name}</p>
+                        <p className="text-sm text-gray-500">{stockOut.requestor_username}</p>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={quantity}
-                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                      className="text-lg"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button 
-                    type="submit" 
-                    disabled={isScanning || !barcodeInput.trim()}
-                    className="flex-1 gap-2"
-                  >
-                    {isScanning ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                        Scanning...
-                      </>
-                    ) : (
-                      <>
-                        <TrendingDown className="h-4 w-4" />
-                        Scan & Kurangi Stock
-                      </>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-600">Request Date</p>
+                        <p className="font-medium">
+                          {new Date(stockOut.request_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    {stockOut.approved_by && stockOut.approver_username && (
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm text-gray-600">Approved By</p>
+                          <p className="font-medium">{stockOut.approver_username}</p>
+                          {stockOut.approval_date && (
+                            <p className="text-sm text-gray-500">
+                              {new Date(stockOut.approval_date).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </Button>
-                  
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    onClick={handleCheckStock}
-                    disabled={!barcodeInput.trim()}
-                    className="gap-2"
-                  >
-                    <Eye className="h-4 w-4" />
-                    Check Stock
-                  </Button>
-                </div>
-              </form>
-
-              {/* Stock Info Display */}
-              {showStockInfo && currentProductStock && (
-                <div className="mt-4 p-4 bg-gray-800 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-200 mb-2">Stock Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p><strong>Product:</strong> {currentProductStock.product.name}</p>
-                      <p><strong>Part Number:</strong> {currentProductStock.product.part_number}</p>
-                      <p><strong>Unit Type:</strong> {currentProductStock.barcode_info.unit_type}</p>
-                    </div>
-                    <div>
-                      <p><strong>Available Units:</strong> {currentProductStock.stock_summary.available_units_for_scanned_type}</p>
-                      <p><strong>Total Pieces:</strong> {currentProductStock.stock_summary.total_pieces_all_locations}</p>
-                      <p><strong>Locations:</strong> {currentProductStock.stock_summary.number_of_locations}</p>
-                    </div>
+                    {stockOut.notes && (
+                      <div>
+                        <p className="text-sm text-gray-600">Notes</p>
+                        <p className="font-medium">{stockOut.notes}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Transaction History */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Transaction History
-                {totalItems > 0 && (
-                  <Badge variant="secondary">{totalItems} items</Badge>
+            {/* Stock Out Items */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Stock Out Items ({stockOut.items?.length || 0})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {stockOut.items && stockOut.items.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2 px-2 font-medium">Product</th>
+                            <th className="text-left py-2 px-2 font-medium">Unit</th>
+                            <th className="text-left py-2 px-2 font-medium">Quantity</th>
+                            <th className="text-left py-2 px-2 font-medium">Pieces</th>
+                            <th className="text-left py-2 px-2 font-medium">Price</th>
+                            <th className="text-left py-2 px-2 font-medium">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stockOut.items.map((item, index) => (
+                            <tr key={item.id} className="border-b hover:bg-gray-50">
+                              <td className="py-3 px-2">
+                                <div>
+                                  <div className="font-medium">{item.product_name}</div>
+                                  <div className="text-sm text-gray-500">{item.part_number}</div>
+                                  {item.scanned_barcode && (
+                                    <div className="text-xs text-gray-400 font-mono">
+                                      {item.scanned_barcode}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3 px-2">
+                                <div className="flex items-center gap-2">
+                                  {item.unit_type && (
+                                    <Badge className={getUnitTypeColor(item.unit_type)} size="sm">
+                                      {getUnitTypeIcon(item.unit_type)}
+                                      <span className="ml-1 capitalize">{item.unit_type}</span>
+                                    </Badge>
+                                  )}
+                                  <span className="text-sm">{item.unit_name}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-2">
+                                <div className="font-medium">{item.quantity}</div>
+                              </td>
+                              <td className="py-3 px-2">
+                                <div className="font-medium text-orange-600">
+                                  {item.total_pieces.toLocaleString("id-ID")}
+                                </div>
+                              </td>
+                              <td className="py-3 px-2">
+                                <div className="text-sm">
+                                  {item.price_per_unit.toLocaleString("id-ID")} IDR
+                                </div>
+                              </td>
+                              <td className="py-3 px-2">
+                                <div className="font-medium">
+                                  {item.total_amount.toLocaleString("id-ID")} IDR
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Summary */}
+                    <div className="border-t pt-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-600">Total Items</p>
+                          <p className="font-semibold text-lg">{stockOut.items.length}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Total Pieces</p>
+                          <p className="font-semibold text-lg text-orange-600">
+                            {calculateTotalPieces().toLocaleString("id-ID")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Total Value</p>
+                          <p className="font-semibold text-lg">
+                            {calculateTotalValue().toLocaleString("id-ID")} IDR
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Avg Price/Piece</p>
+                          <p className="font-semibold text-lg">
+                            {calculateTotalPieces() > 0 
+                              ? Math.round(calculateTotalValue() / calculateTotalPieces()).toLocaleString("id-ID")
+                              : 0} IDR
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Items Added</h3>
+                    <p className="text-gray-600 mb-4">
+                      No items have been added to this stock out request yet.
+                    </p>
+                    {workflowActions.canAddItems && (
+                      <Button
+                        onClick={() => router.push(`/stock/out/add-item/${stockOut.id}`)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Item
+                      </Button>
+                    )}
+                  </div>
                 )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {scanTransactions.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Unit</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Pieces</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Remaining</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {scanTransactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell className="font-mono text-xs">
-                            {formatTime(transaction.timestamp)}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{transaction.product_name}</p>
-                              <p className="text-xs text-gray-500">{transaction.part_number}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Actions and Status */}
+          <div className="space-y-6">
+            {/* Workflow Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {workflowActions.canAddItems && (
+                  <Button
+                    className="w-full"
+                    onClick={() => router.push(`/stock/out/add-item/${stockOut.id}`)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Items
+                  </Button>
+                )}
+
+                {workflowActions.canApprove && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        className="w-full" 
+                        variant="default"
+                        disabled={!stockOut.items || stockOut.items.length === 0}>
+                        <Check className="h-4 w-4 mr-2" />
+                        Approve Request
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Approve Stock Out Request</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to approve this stock out request? 
+                          This action will allow the items to be dispensed.
+                          {(!stockOut.items || stockOut.items.length === 0) && (
+                            <div className="mt-2 text-red-600">
+                              Note: This request has no items added yet.
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{transaction.unit_type}</Badge>
-                          </TableCell>
-                          <TableCell>{transaction.quantity}</TableCell>
-                          <TableCell>{transaction.pieces_deducted}</TableCell>
-                          <TableCell>{formatCurrency(transaction.total_amount)}</TableCell>
-                          <TableCell>
-                            <span className={transaction.remaining_stock < 10 ? "text-red-600 font-medium" : "text-green-600"}>
-                              {transaction.remaining_stock}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Package className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-lg font-medium">Belum ada transaksi</h3>
-                  <p className="text-sm text-gray-500">
-                    Scan barcode untuk mengeluarkan barang
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                          )}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleApprove}
+                          disabled={isActionLoading || !stockOut.items || stockOut.items.length === 0}>
+                          {isActionLoading ? "Approving..." : "Approve"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
 
-        {/* Summary Sidebar */}
-        <div className="space-y-6">
-          {/* Stock Out Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Request Info</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Reference</p>
-                <p className="font-medium">{stockOut.reference_number}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Requestor</p>
-                <p className="font-medium">{stockOut.requestor_name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Department</p>
-                <p className="font-medium">{stockOut.department_name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Status</p>
-                <Badge 
-                  variant={stockOut.status === 'pending' ? 'default' : 'secondary'}
-                  className="mt-1"
-                >
-                  {stockOut.status}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+                {workflowActions.canComplete && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button className="w-full" variant="default">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Complete Request
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Complete Stock Out Request</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to complete this stock out request? 
+                          This will mark the process as finished and items as dispensed.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleComplete}
+                          disabled={isActionLoading}>
+                          {isActionLoading ? "Completing..." : "Complete"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
 
-          {/* Transaction Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">{totalItems}</p>
-                  <p className="text-xs text-blue-700">Items</p>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">{totalPieces}</p>
-                  <p className="text-xs text-green-700">Pieces</p>
-                </div>
-              </div>
-              
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <p className="text-lg font-bold text-purple-600">
-                  {formatCurrency(totalAmount)}
-                </p>
-                <p className="text-xs text-purple-700">Total Value</p>
-              </div>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => router.push(`/stock/out`)}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View All Requests
+                </Button>
+              </CardContent>
+            </Card>
 
-              {scanTransactions.length > 0 && (
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Last scan: {formatTime(scanTransactions[0].timestamp)}
-                  </p>
+            {/* Status Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Status Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Current Status</span>
+                  <Badge className={getStatusBadgeColor(stockOut.status)}>
+                    {getStatusIcon(stockOut.status)}
+                    <span className="ml-1 capitalize">{stockOut.status}</span>
+                  </Badge>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Can Add Items:</span>
+                    <span className={workflowActions.canAddItems ? "text-green-600" : "text-red-600"}>
+                      {workflowActions.canAddItems ? "Yes" : "No"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Can Approve:</span>
+                    <span className={workflowActions.canApprove ? "text-green-600" : "text-red-600"}>
+                      {workflowActions.canApprove ? "Yes" : "No"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Can Complete:</span>
+                    <span className={workflowActions.canComplete ? "text-green-600" : "text-red-600"}>
+                      {workflowActions.canComplete ? "Yes" : "No"}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Process Flow */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Process Flow</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className={`flex items-center gap-2 ${stockOut.status === 'pending' ? 'text-yellow-600' : 'text-green-600'}`}>
+                    <div className={`w-3 h-3 rounded-full ${stockOut.status === 'pending' ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                    <span className="text-sm">Request Created</span>
+                  </div>
+                  <div className={`flex items-center gap-2 ${['approved', 'completed'].includes(stockOut.status) ? 'text-green-600' : 'text-gray-400'}`}>
+                    <div className={`w-3 h-3 rounded-full ${['approved', 'completed'].includes(stockOut.status) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    <span className="text-sm">Request Approved</span>
+                  </div>
+                  <div className={`flex items-center gap-2 ${stockOut.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+                    <div className={`w-3 h-3 rounded-full ${stockOut.status === 'completed' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    <span className="text-sm">Request Completed</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

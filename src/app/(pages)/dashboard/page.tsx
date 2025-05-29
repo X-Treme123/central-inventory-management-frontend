@@ -51,9 +51,9 @@ import {
   getAllStockIn,
   getAllStockOut,
 } from "@/lib/api/services";
-import { getAllWarehouses } from "@/features/dashboard/warehouses/api/index";
-import { getAllSuppliers } from "@/features/dashboard/suppliers/api/index";
-import { Warehouses } from "@/features/dashboard/warehouses/api/index";
+import { getAllWarehouses } from "@/features/pages/warehouses/api/index";
+import { getAllSuppliers } from "@/features/pages/suppliers/api/index";
+import { Warehouses } from "@/features/pages/warehouses/api/index";
 import {
   CurrentStock,
   StockHistory,

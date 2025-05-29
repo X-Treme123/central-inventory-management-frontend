@@ -47,8 +47,8 @@ import {
   AlertCircle,
   Filter,
 } from "lucide-react";
-import { getAllProducts, scanBarcode } from "@/lib/api/services";
-import type { Product, BarcodeScanResponse } from "@/lib/api/types";
+import { getAllProducts, scanBarcode } from "@/features/pages/products/api/index";
+import type { Product, BarcodeScanResponse } from "@/features/pages/products/api/index";
 
 export default function ProductsPage() {
   const { token } = useAuth();
@@ -718,11 +718,11 @@ export default function ProductsPage() {
                                       </div>
 
                                       <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div className="bg-blue-50 p-3 rounded">
-                                          <p className="text-blue-600 font-medium">
+                                        <div className="bg-gray-800 p-3 rounded">
+                                          <p className="text-white font-medium">
                                             Total Pieces
                                           </p>
-                                          <p className="text-xl font-bold text-blue-800">
+                                          <p className="text-xl font-bold text-white">
                                             {(
                                               selectedProduct.total_stock_pieces ||
                                               0
@@ -730,11 +730,11 @@ export default function ProductsPage() {
                                           </p>
                                         </div>
 
-                                        <div className="bg-green-50 p-3 rounded">
-                                          <p className="text-green-600 font-medium">
+                                        <div className="bg-gray-800 p-3 rounded">
+                                          <p className="text-white font-medium">
                                             Available Packs
                                           </p>
-                                          <p className="text-xl font-bold text-green-800">
+                                          <p className="text-xl font-bold text-white">
                                             {Math.floor(
                                               (selectedProduct.total_stock_pieces ||
                                                 0) /
@@ -743,11 +743,11 @@ export default function ProductsPage() {
                                           </p>
                                         </div>
 
-                                        <div className="bg-purple-50 p-3 rounded">
-                                          <p className="text-purple-600 font-medium">
+                                        <div className="bg-gray-800 p-3 rounded">
+                                          <p className="text-white font-medium">
                                             Available Boxes
                                           </p>
-                                          <p className="text-xl font-bold text-purple-800">
+                                          <p className="text-xl font-bold text-white">
                                             {Math.floor(
                                               (selectedProduct.total_stock_pieces ||
                                                 0) /
@@ -757,8 +757,8 @@ export default function ProductsPage() {
                                           </p>
                                         </div>
 
-                                        <div className="bg-gray-50 p-3 rounded">
-                                          <p className="text-gray-600 font-medium">
+                                        <div className="bg-gray-800 p-3 rounded">
+                                          <p className="text-gray-200 font-medium">
                                             Unit Conversion
                                           </p>
                                           <p className="text-sm">
@@ -789,7 +789,7 @@ export default function ProductsPage() {
                                             Piece
                                           </Badge>
                                         </div>
-                                        <code className="text-sm font-mono block break-all bg-gray-100 p-2 rounded">
+                                        <code className="text-sm font-mono block break-all bg-gray-800 p-2 rounded">
                                           {selectedProduct.piece_barcode}
                                         </code>
                                         <p className="text-xs text-gray-500 mt-2">
@@ -806,7 +806,7 @@ export default function ProductsPage() {
                                             Pack
                                           </Badge>
                                         </div>
-                                        <code className="text-sm font-mono block break-all bg-gray-100 p-2 rounded">
+                                        <code className="text-sm font-mono block break-all bg-gray-800 p-2 rounded">
                                           {selectedProduct.pack_barcode}
                                         </code>
                                         <p className="text-xs text-gray-500 mt-2">
@@ -825,7 +825,7 @@ export default function ProductsPage() {
                                             Box
                                           </Badge>
                                         </div>
-                                        <code className="text-sm font-mono block break-all bg-gray-100 p-2 rounded">
+                                        <code className="text-sm font-mono block break-all bg-gray-800 p-2 rounded">
                                           {selectedProduct.box_barcode}
                                         </code>
                                         <p className="text-xs text-gray-500 mt-2">
