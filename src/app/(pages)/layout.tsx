@@ -461,16 +461,6 @@ export default function DashboardLayout({
 
           {/* Right side actions */}
           <div className="flex items-center gap-3">
-            {/* Notifications */}
-            <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
-              <Bell size={20} />
-            </button>
-
-            {/* Help */}
-            <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
-              <HelpCircle size={20} />
-            </button>
-
             {/* Dark mode toggle */}
             <button
               className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none"
@@ -523,7 +513,7 @@ export default function DashboardLayout({
                       </div>
                       <div className="py-1">
                         <Link
-                          href="/dashboard/profile"
+                          href="/profile"
                           className="group flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                           onClick={() => setIsUserMenuOpen(false)}>
                           <User size={16} className="mr-2" />
