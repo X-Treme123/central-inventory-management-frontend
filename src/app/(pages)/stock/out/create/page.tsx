@@ -1,4 +1,4 @@
-// app/stock/out/create/page.tsx
+// app/(pages)/stock/out/create/page.tsx - Simplified version
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,8 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { createStockOut } from "@/lib/api/services";
-import { getAllDepartments } from "@/lib/api/services"; // Assuming this exists
+import { 
+  getAllUsers,
+  type UserListItem 
+} from "@/features/auth/api/index";
 import type { CreateStockOutForm } from "@/lib/api/types";
 import {
   CheckCircle2,
@@ -30,16 +34,12 @@ import {
   FileText,
   Calendar,
   MessageSquare,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 
-interface Department {
-  id: string;
-  name: string;
-  description?: string;
-}
-
 export default function CreateStockOutPage() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const router = useRouter();
 
   // Form state
@@ -50,36 +50,42 @@ export default function CreateStockOutPage() {
     notes: "",
   });
 
-  // Master data
-  const [departments, setDepartments] = useState<Department[]>([]);
+  // Selected user info for auto-populating department
+  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
+
+  // Master data from auth service
+  const [users, setUsers] = useState<UserListItem[]>([]);
 
   // UI states
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingDepartments, setIsLoadingDepartments] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) {
-      loadDepartments();
+      loadInitialData();
       generateReferenceNumber();
-      setDefaultRequestorName();
     }
   }, [token]);
 
-  const loadDepartments = async () => {
+  const loadInitialData = async () => {
+    setIsLoadingData(true);
     try {
-      const response = await getAllDepartments(token!);
-      
-      if (response.code === "200" && response.data) {
-        setDepartments(response.data);
+      // Load users data
+      const usersRes = await getAllUsers(token!);
+
+      // Set users
+      if (usersRes.code === "200" && usersRes.data) {
+        setUsers(usersRes.data);
       } else {
-        setError("Failed to load departments");
+        throw new Error("Failed to load users");
       }
+
     } catch (err: any) {
-      console.error("Error loading departments:", err);
-      setError(err.message || "Failed to load departments");
+      console.error("Error loading initial data:", err);
+      setError(err.message || "Failed to load users data");
     } finally {
-      setIsLoadingDepartments(false);
+      setIsLoadingData(false);
     }
   };
 
@@ -92,12 +98,6 @@ export default function CreateStockOutPage() {
     
     const referenceNumber = `SO-${year}${month}${day}-${time}`;
     setFormData(prev => ({ ...prev, reference_number: referenceNumber }));
-  };
-
-  const setDefaultRequestorName = () => {
-    if (user?.username) {
-      setFormData(prev => ({ ...prev, requestor_name: user.username }));
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,13 +114,13 @@ export default function CreateStockOutPage() {
       return;
     }
 
-    if (!formData.department_id) {
-      setError("Please select a department");
+    if (!formData.requestor_name.trim()) {
+      setError("Please select a requestor");
       return;
     }
 
-    if (!formData.requestor_name.trim()) {
-      setError("Requestor name is required");
+    if (!formData.department_id.trim()) {
+      setError("Department is required (auto-filled when selecting user)");
       return;
     }
 
@@ -153,6 +153,42 @@ export default function CreateStockOutPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleUserSelect = (selectedUserId: string) => {
+    const user = users.find(u => u.idlogin.toString() === selectedUserId);
+    if (user) {
+      setSelectedUser(user);
+      // Auto-populate form with selected user's data
+      setFormData(prev => ({
+        ...prev,
+        requestor_name: user.username,
+        department_id: user.department,
+      }));
+    }
+  };
+
+  const refreshData = async () => {
+    await loadInitialData();
+  };
+
+  // Loading state
+  if (isLoadingData) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Loading Form Data</h3>
+              <p className="text-gray-600">
+                Fetching user information...
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto">
@@ -163,19 +199,30 @@ export default function CreateStockOutPage() {
               <h1 className="text-3xl font-bold">Create Stock Out Request</h1>
               <p className="text-gray-600">Create a new request for outgoing inventory</p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => router.push("/stock/out")}>
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Back to List
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshData}
+                disabled={isLoadingData}
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingData ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push("/stock/out")}>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Back to List
+              </Button>
+            </div>
           </div>
 
           {/* Process Indicator */}
-          <div className="mt-4 flex items-center gap-2 text-sm bg-blue-50 p-3 rounded-lg">
-            <Plus className="h-4 w-4 text-blue-600" />
-            <span className="text-blue-800 font-medium">Step 1 of 3: Create Request</span>
-            <span className="text-blue-600">→ Add Items → Complete</span>
+          <div className="mt-4 flex items-center gap-2 text-sm bg-gray-800 p-3 rounded-lg">
+            <Plus className="h-4 w-4 text-white" />
+            <span className="text-white font-medium">Step 1 of 3: Create Request</span>
+            <span className="text-white">→ Add Items → Complete</span>
           </div>
         </div>
 
@@ -201,11 +248,33 @@ export default function CreateStockOutPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Reference Number */}
+              {/* Request Date (Auto-filled, Read-only) - First */}
+              <div>
+                <Label className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Request Date
+                </Label>
+                <Input
+                  value={new Date().toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                  disabled
+                  className="mt-1 bg-gray-800"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Request date is automatically set to today
+                </p>
+              </div>
+
+              {/* Reference Number - Second with red asterisk */}
               <div>
                 <Label htmlFor="reference_number" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Reference Number *
+                  Reference Number 
+                  <span className="text-red-500 font-bold">*</span>
                 </Label>
                 <Input
                   id="reference_number"
@@ -220,69 +289,69 @@ export default function CreateStockOutPage() {
                 </p>
               </div>
 
-              {/* Department Selection */}
+              {/* Requestor Name and Department - Third (combined) */}
               <div>
-                <Label htmlFor="department" className="flex items-center gap-2">
-                  <Building className="h-4 w-4" />
-                  Department *
+                <Label htmlFor="requestor" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Requestor Name and Department
+                  <span className="text-red-500 font-bold">*</span>
                 </Label>
+                
                 <Select
-                  value={formData.department_id}
-                  onValueChange={(value) => handleInputChange("department_id", value)}
-                  disabled={isLoadingDepartments}
+                  value={selectedUser?.idlogin.toString() || ""}
+                  onValueChange={handleUserSelect}
                 >
                   <SelectTrigger className="mt-1">
-                    <SelectValue 
-                      placeholder={isLoadingDepartments ? "Loading departments..." : "Select department"} 
-                    />
+                    <SelectValue placeholder="Select requestor from user list" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((department) => (
-                      <SelectItem key={department.id} value={department.id}>
-                        {department.name}
+                    {users.map((user) => (
+                      <SelectItem key={user.idlogin} value={user.idlogin.toString()}>
+                        <div className="flex flex-col w-full">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{user.username}</span>
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {user.department}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {user.position} • {user.lokasi}
+                          </span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+
+                {/* Display selected user info */}
+                {selectedUser && (
+                  <div className="mt-2 p-3 bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-4 w-4 text-white" />
+                      <span className="text-white font-medium">Selected:</span>
+                      <span className="text-white">
+                        {selectedUser.username}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm mt-1">
+                      <Building className="h-4 w-4 text-white" />
+                      <span className="text-white font-medium">Department:</span>
+                      <span className="text-white">
+                        {selectedUser.department}
+                      </span>
+                    </div>
+                    <div className="text-xs text-white mt-1">
+                      {selectedUser.position} • {selectedUser.lokasi}
+                    </div>
+                  </div>
+                )}
+                
                 <p className="text-xs text-gray-500 mt-1">
-                  Select the department requesting these items
+                  Select a user from the list. Department will be automatically filled based on the selected user.
                 </p>
               </div>
 
-              {/* Requestor Name */}
-              <div>
-                <Label htmlFor="requestor_name" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Requestor Name *
-                </Label>
-                <Input
-                  onChange={(e) => handleInputChange("requestor_name", e.target.value)}
-                  placeholder="Enter requestor name"
-                  required
-                  className="mt-1"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Name of the person requesting these items
-                </p>
-              </div>
-
-              {/* Request Date (Auto-filled, Read-only) */}
-              <div>
-                <Label className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Request Date
-                </Label>
-                <Input
-                  value={new Date().toLocaleDateString()}
-                  disabled
-                  className="mt-1 bg-gray-800"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Request date is automatically set to today
-                </p>
-              </div>
-
-              {/* Notes */}
+              {/* Notes - Fourth (Optional) */}
               <div>
                 <Label htmlFor="notes" className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
@@ -303,24 +372,19 @@ export default function CreateStockOutPage() {
 
               {/* Form Summary */}
               <div className="bg-gray-800 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-800 mb-2">Request Summary</h4>
+                <h4 className="font-medium text-white mb-2">Request Summary</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600">Reference:</p>
                     <p className="font-medium">{formData.reference_number || "Not set"}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Department:</p>
-                    <p className="font-medium">
-                      {formData.department_id 
-                        ? departments.find(d => d.id === formData.department_id)?.name || "Selected"
-                        : "Not selected"
-                      }
-                    </p>
+                    <p className="text-gray-600">Requestor:</p>
+                    <p className="font-medium">{formData.requestor_name || "Not selected"}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Requestor:</p>
-                    <p className="font-medium">{formData.requestor_name || "Not set"}</p>
+                    <p className="text-gray-600">Department:</p>
+                    <p className="font-medium">{formData.department_id || "Not selected"}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">Status:</p>
@@ -346,7 +410,7 @@ export default function CreateStockOutPage() {
                 >
                   {isLoading ? (
                     <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Creating Request...
                     </>
                   ) : (

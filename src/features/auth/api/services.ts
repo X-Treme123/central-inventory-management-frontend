@@ -1,4 +1,4 @@
-// features/auth/api/services.ts
+// features/auth/api/services.ts - Updated with new functions
 
 import { fetchWithAuth } from "@/lib/api/config";
 import Cookies from "js-cookie";
@@ -10,7 +10,13 @@ import {
   RefreshTokenRequest,
   RefreshTokenResponse,
   CheckTokenResponse,
+  DepartmentsResponse,
+  UsersResponse,
+  CurrentUserResponse,
   ApiResponse,
+  Department,
+  UserListItem,
+  User,
 } from "./types";
 
 //=============================================================================
@@ -95,11 +101,134 @@ export const logoutUser = async (): Promise<ApiResponse<null>> => {
   }
 };
 
+//=============================================================================
+// NEW SERVICES - DEPARTMENTS & USERS
+//=============================================================================
+
+export const getAllDepartments = async (token: string): Promise<ApiResponse<Department[]>> => {
+  try {
+    const response = await fetchWithAuth(AUTH_ENDPOINTS.DEPARTMENTS, {
+      method: "GET",
+    }, token);
+
+    if (response && response.code === "200") {
+      return response;
+    } else {
+      throw new Error(response?.message || "Failed to fetch departments");
+    }
+  } catch (error) {
+    console.error("Get departments error:", error);
+    throw error;
+  }
+};
+
+export const getAllUsers = async (token: string): Promise<ApiResponse<UserListItem[]>> => {
+  try {
+    const response = await fetchWithAuth(AUTH_ENDPOINTS.USERS, {
+      method: "GET",
+    }, token);
+
+    if (response && response.code === "200") {
+      return response;
+    } else {
+      throw new Error(response?.message || "Failed to fetch users");
+    }
+  } catch (error) {
+    console.error("Get users error:", error);
+    throw error;
+  }
+};
+
+export const getUsersByDepartment = async (
+  token: string, 
+  department: string
+): Promise<ApiResponse<UserListItem[]>> => {
+  try {
+    const response = await fetchWithAuth(
+      `${AUTH_ENDPOINTS.USERS_BY_DEPARTMENT}/${encodeURIComponent(department)}`, 
+      {
+        method: "GET",
+      }, 
+      token
+    );
+
+    if (response && response.code === "200") {
+      return response;
+    } else {
+      throw new Error(response?.message || "Failed to fetch users by department");
+    }
+  } catch (error) {
+    console.error("Get users by department error:", error);
+    throw error;
+  }
+};
+
+export const getCurrentUserInfo = async (token: string): Promise<ApiResponse<User>> => {
+  try {
+    const response = await fetchWithAuth(AUTH_ENDPOINTS.CURRENT_USER, {
+      method: "GET",
+    }, token);
+
+    if (response && response.code === "200") {
+      return response;
+    } else {
+      throw new Error(response?.message || "Failed to fetch current user info");
+    }
+  } catch (error) {
+    console.error("Get current user info error:", error);
+    throw error;
+  }
+};
+
+//=============================================================================
+// CONVENIENCE FUNCTIONS
+//=============================================================================
+
+// Get departments for dropdown
+export const getDepartmentsForDropdown = async (token: string): Promise<Department[]> => {
+  try {
+    const response = await getAllDepartments(token);
+    return response.data || [];
+  } catch (error) {
+    console.error("Error getting departments for dropdown:", error);
+    return [];
+  }
+};
+
+// Get users for dropdown (e.g., requestor selection)
+export const getUsersForDropdown = async (token: string): Promise<UserListItem[]> => {
+  try {
+    const response = await getAllUsers(token);
+    return response.data || [];
+  } catch (error) {
+    console.error("Error getting users for dropdown:", error);
+    return [];
+  }
+};
+
+// Get current user's department
+export const getCurrentUserDepartment = async (token: string): Promise<string | null> => {
+  try {
+    const response = await getCurrentUserInfo(token);
+    return response.data?.department || null;
+  } catch (error) {
+    console.error("Error getting current user department:", error);
+    return null;
+  }
+};
+
 const authService = {
   loginUser,
   refreshToken,
   checkToken,
   logoutUser,
+  getAllDepartments,
+  getAllUsers,
+  getUsersByDepartment,
+  getCurrentUserInfo,
+  getDepartmentsForDropdown,
+  getUsersForDropdown,
+  getCurrentUserDepartment,
 };
 
 export default authService;

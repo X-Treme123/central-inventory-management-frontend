@@ -380,10 +380,10 @@ export default function AddStockOutItemPage() {
         )}
 
         {successMessage && (
-          <Alert className="mb-6 bg-green-50 border-green-200">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-800">Success</AlertTitle>
-            <AlertDescription className="text-green-700">
+          <Alert className="mb-6 bg-gray-800">
+            <CheckCircle2 className="h-4 w-4 text-green-200" />
+            <AlertTitle className="text-green-200">Success</AlertTitle>
+            <AlertDescription className="text-green-200">
               {successMessage}
             </AlertDescription>
           </Alert>
@@ -433,7 +433,7 @@ export default function AddStockOutItemPage() {
 
             {/* Scan Result Display */}
             {scanResult && (
-              <Card className="border-orange-200 bg-gray-800">
+              <Card className="bg-gray-800">
                 <CardHeader>
                   <CardTitle className="text-orange-400 flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5" />
