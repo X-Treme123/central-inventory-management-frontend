@@ -346,15 +346,90 @@ export interface DefectItem {
   status: 'pending' | 'returned' | 'resolved';
   created_at: string;
   updated_at: string;
+  
+  // Populated fields from joins
   product_name?: string;
   part_number?: string;
   unit_name?: string;
+  unit_abbreviation?: string;
   reported_by_name?: string;
   warehouse_name?: string;
   container_name?: string;
   rack_name?: string;
-  barcodes?: ProductBarcode[];
+  invoice_code?: string;
+  receipt_date?: string;
+  
+  // Calculation fields
+  calculations?: {
+    defect_pieces: number;
+    price_per_piece: number;
+    estimated_loss: number;
+  };
 }
+
+export interface StockInItemForDefect {
+  id: string;
+  product_id: string;
+  quantity: number;
+  total_pieces: number;
+  unit_id: string;
+  warehouse_id: string;
+  container_id: string;
+  rack_id: string;
+  
+  // Stock in info
+  invoice_code: string;
+  receipt_date: string;
+  supplier_id: string;
+  
+  // Product info
+  product_name: string;
+  part_number: string;
+  pieces_per_pack: number;
+  packs_per_box: number;
+  
+  // Unit info
+  unit_name: string;
+  unit_abbreviation: string;
+  
+  // Location info
+  warehouse_name: string;
+  container_name: string;
+  rack_name: string;
+  
+  // Supplier info
+  supplier_name: string;
+  
+  // Current stock
+  current_stock_pieces: number | null;
+}
+
+export interface CreateDefectForm {
+  stock_in_item_id: string;
+  unit_id: string;
+  quantity: number;
+  defect_type: string;
+  defect_description?: string;
+}
+
+export interface CreateDefectForm {
+  stock_in_item_id: string;
+  unit_id: string;
+  quantity: number;
+  defect_type: string;
+  defect_description?: string;
+}
+
+export type DefectStatus = 'pending' | 'returned' | 'resolved';
+
+export type DefectType = 
+  | 'Damaged Packaging'
+  | 'Broken'
+  | 'Missing Parts'
+  | 'Wrong Product'
+  | 'Expired'
+  | 'Quality Issue'
+  | 'Other';
 
 //=============================================================================
 // STOCK REPORT TYPES

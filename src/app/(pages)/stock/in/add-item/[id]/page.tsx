@@ -1,4 +1,4 @@
-// app/stock/in/add-item/[id]/page.tsx - Updated dengan barcode scanning workflow
+// app/stock/in/add-item/[id]/page.tsx - Updated dengan manual currency input Indonesia
 "use client";
 
 import { useState, useEffect } from "react";
@@ -63,7 +63,7 @@ export default function AddStockInItemPage() {
   );
   const [isScanning, setIsScanning] = useState(false);
 
-  // State untuk form setelah scan berhasil
+  // State untuk form setelah scan berhasil - dengan formatted values
   const [formData, setFormData] = useState<AddStockInItemByBarcodeForm>({
     barcode: "",
     quantity: 1,
@@ -71,6 +71,12 @@ export default function AddStockInItemPage() {
     warehouse_id: "",
     container_id: "",
     rack_id: "",
+  });
+
+  // State untuk formatted display values
+  const [formattedValues, setFormattedValues] = useState({
+    quantity: "1",
+    price_per_unit: "0",
   });
 
   // Master data untuk location
@@ -83,6 +89,75 @@ export default function AddStockInItemPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ==================== CURRENCY FORMATTING FUNCTIONS ====================
+  
+  // Format angka ke format Indonesia (1.000.000)
+  const formatCurrency = (value: number | string): string => {
+    if (!value && value !== 0) return "";
+    
+    // Convert to number first
+    const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+    
+    // Handle decimal places - if it's a whole number, don't show decimals
+    if (numValue % 1 === 0) {
+      return numValue.toLocaleString("id-ID");
+    } else {
+      return numValue.toLocaleString("id-ID", { 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2 
+      });
+    }
+  };
+
+  // Parse formatted string kembali ke number
+  const parseCurrency = (formattedValue: string): number => {
+    if (!formattedValue) return 0;
+    
+    // Remove all dots (thousand separators) and convert comma to dot for decimal
+    const cleanValue = formattedValue
+      .replace(/\./g, '') // Remove dots (thousand separators)
+      .replace(/,/g, '.') // Replace comma with dot for decimal (if any)
+      .replace(/[^\d.]/g, ''); // Remove any non-digit, non-dot characters
+    
+    return parseFloat(cleanValue) || 0;
+  };
+
+  // Handle currency input dengan formatting real-time
+  const handleCurrencyInput = (
+    value: string, 
+    field: 'quantity' | 'price_per_unit'
+  ) => {
+    // Allow only numbers, dots, and commas
+    const cleanInput = value.replace(/[^\d.,]/g, '');
+    
+    // Parse to get the actual number
+    const numericValue = parseCurrency(cleanInput);
+    
+    // Update both formatted display and actual values
+    setFormattedValues(prev => ({
+      ...prev,
+      [field]: cleanInput
+    }));
+    
+    setFormData(prev => ({
+      ...prev,
+      [field]: numericValue
+    }));
+  };
+
+  // Format on blur untuk membersihkan format
+  const handleCurrencyBlur = (field: 'quantity' | 'price_per_unit') => {
+    const numericValue = formData[field];
+    const formattedValue = formatCurrency(numericValue);
+    
+    setFormattedValues(prev => ({
+      ...prev,
+      [field]: formattedValue
+    }));
+  };
+
+  // ==================== EXISTING FUNCTIONS ====================
 
   useEffect(() => {
     if (token && id) {
@@ -176,10 +251,17 @@ export default function AddStockInItemPage() {
         setScannedBarcode(barcode);
 
         // Auto-populate form dengan data dari scan
+        const basePrice = response.data.product.price;
         setFormData((prev) => ({
           ...prev,
           barcode: barcode,
-          price_per_unit: response.data!.product.price, // Default price dari produk
+          price_per_unit: basePrice,
+        }));
+
+        // Format the price for display
+        setFormattedValues(prev => ({
+          ...prev,
+          price_per_unit: formatCurrency(basePrice)
         }));
 
         setSuccessMessage(
@@ -233,7 +315,7 @@ export default function AddStockInItemPage() {
       return;
     }
 
-    // Validasi form
+    // Validasi form dengan numeric values
     if (!formData.quantity || formData.quantity <= 0) {
       setError("Please enter a valid quantity");
       return;
@@ -272,6 +354,12 @@ export default function AddStockInItemPage() {
           warehouse_id: formData.warehouse_id, // Keep location untuk convenience
           container_id: formData.container_id,
           rack_id: formData.rack_id,
+        });
+
+        // Reset formatted values
+        setFormattedValues({
+          quantity: "1",
+          price_per_unit: "0",
         });
 
         // Clear success message setelah beberapa detik
@@ -490,8 +578,7 @@ export default function AddStockInItemPage() {
                           </p>
                           <p>
                             <strong>Base Price:</strong>{" "}
-                            {scanResult.product.price.toLocaleString("id-ID")}{" "}
-                            IDR
+                            Rp {formatCurrency(scanResult.product.price)}
                           </p>
                         </div>
                       </div>
@@ -518,12 +605,12 @@ export default function AddStockInItemPage() {
                           <div className="text-sm space-y-1">
                             <p>
                               <strong>Available:</strong>{" "}
-                              {scanResult.scan_info.available_units}{" "}
+                              {formatCurrency(scanResult.scan_info.available_units)}{" "}
                               {scanResult.scan_info.detected_unit_type}(s)
                             </p>
                             <p>
                               <strong>Total Stock:</strong>{" "}
-                              {scanResult.scan_info.total_pieces_in_stock}{" "}
+                              {formatCurrency(scanResult.scan_info.total_pieces_in_stock)}{" "}
                               pieces
                             </p>
                             <p>
@@ -543,14 +630,10 @@ export default function AddStockInItemPage() {
                       </h4>
                       <div className="text-sm text-white space-y-1">
                         <p>
-                          • 1 Pack ={" "}
-                          {scanResult.unit_conversion.pieces_per_pack} Pieces
+                          • 1 Pack = {formatCurrency(scanResult.unit_conversion.pieces_per_pack)} Pieces
                         </p>
                         <p>
-                          • 1 Box = {scanResult.unit_conversion.packs_per_box}{" "}
-                          Packs ={" "}
-                          {scanResult.unit_conversion.total_pieces_per_box}{" "}
-                          Pieces
+                          • 1 Box = {formatCurrency(scanResult.unit_conversion.packs_per_box)} Packs = {formatCurrency(scanResult.unit_conversion.total_pieces_per_box)} Pieces
                         </p>
                       </div>
                     </div>
@@ -571,56 +654,56 @@ export default function AddStockInItemPage() {
                 <CardContent>
                   <form onSubmit={handleSubmitItem} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Quantity */}
+                      {/* Quantity - Manual Input */}
                       <div>
                         <Label htmlFor="quantity">
-                          Quantity ({scanResult.scan_info.detected_unit_type}s)
-                          *
+                          Quantity ({scanResult.scan_info.detected_unit_type}s) *
                         </Label>
                         <Input
                           id="quantity"
-                          type="number"
-                          min="1"
-                          value={formData.quantity}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              quantity: parseInt(e.target.value) || 1,
-                            })
-                          }
+                          type="text"
+                          value={formattedValues.quantity}
+                          onChange={(e) => handleCurrencyInput(e.target.value, 'quantity')}
+                          onBlur={() => handleCurrencyBlur('quantity')}
+                          placeholder="e.g., 1.000"
                           required
                           className="mt-1"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter quantity (use dots for thousands: 1.000)
+                        </p>
                       </div>
 
-                      {/* Price per Unit */}
+                      {/* Price per Unit - Manual Input */}
                       <div>
                         <Label htmlFor="price">
-                          Price per {scanResult.scan_info.detected_unit_type}{" "}
-                          (IDR) *
+                          Price per {scanResult.scan_info.detected_unit_type} (IDR) *
                         </Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={formData.price_per_unit}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              price_per_unit: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                          required
-                          className="mt-1"
-                        />
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                            Rp
+                          </span>
+                          <Input
+                            id="price"
+                            type="text"
+                            value={formattedValues.price_per_unit}
+                            onChange={(e) => handleCurrencyInput(e.target.value, 'price_per_unit')}
+                            onBlur={() => handleCurrencyBlur('price_per_unit')}
+                            placeholder="e.g., 1.000.000"
+                            required
+                            className="pl-10"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter price (use dots for thousands: 1.000.000)
+                        </p>
                       </div>
 
                       {/* Calculated Total Pieces */}
                       <div>
                         <Label>Total Pieces</Label>
                         <div className="mt-1 p-2 bg-gray-800 rounded-sm border text-center font-medium">
-                          {calculateTotalPieces().toLocaleString("id-ID")}
+                          {formatCurrency(calculateTotalPieces())}
                         </div>
                       </div>
                     </div>
@@ -722,27 +805,26 @@ export default function AddStockInItemPage() {
                         <div>
                           <p className="text-blue-600">Quantity</p>
                           <p className="font-semibold">
-                            {formData.quantity}{" "}
+                            {formatCurrency(formData.quantity)}{" "}
                             {scanResult.scan_info.detected_unit_type}(s)
                           </p>
                         </div>
                         <div>
                           <p className="text-blue-600">Total Pieces</p>
                           <p className="font-semibold">
-                            {calculateTotalPieces().toLocaleString("id-ID")}
+                            {formatCurrency(calculateTotalPieces())}
                           </p>
                         </div>
                         <div>
                           <p className="text-blue-600">Price per Unit</p>
                           <p className="font-semibold">
-                            {formData.price_per_unit.toLocaleString("id-ID")}{" "}
-                            IDR
+                            Rp {formatCurrency(formData.price_per_unit)}
                           </p>
                         </div>
                         <div>
                           <p className="text-blue-600">Total Amount</p>
                           <p className="font-semibold text-lg">
-                            {calculateTotalAmount().toLocaleString("id-ID")} IDR
+                            Rp {formatCurrency(calculateTotalAmount())}
                           </p>
                         </div>
                       </div>
@@ -806,13 +888,13 @@ export default function AddStockInItemPage() {
                   <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-medium">
                     4
                   </span>
-                  <p>Enter quantity and select storage location</p>
+                  <p>Enter quantity and price manually (e.g., 1.000.000)</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-medium">
                     5
                   </span>
-                  <p>Click "Add Item" to save</p>
+                  <p>Select storage location and click "Add Item"</p>
                 </div>
               </CardContent>
             </Card>
@@ -864,6 +946,10 @@ export default function AddStockInItemPage() {
                 <p>
                   <strong>Wrong unit detected?</strong> Check if you're scanning
                   the correct barcode for the unit type.
+                </p>
+                <p>
+                  <strong>Price formatting?</strong> Use dots for thousands (1.000.000) 
+                  not commas.
                 </p>
               </CardContent>
             </Card>

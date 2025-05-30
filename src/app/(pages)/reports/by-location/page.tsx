@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import {
   getStockByLocation,
-  getAllWarehouses,
-  getContainersByWarehouse,
-  getRacksByContainer,
 } from "@/lib/api/services";
-import { CurrentStock, Warehouse, Container, Rack } from "@/lib/api/types";
+import { getAllWarehouses, getContainersByWarehouse, getRacksByContainer, Warehouses, Container, Rack } from "@/features/pages/warehouses/api";
+import { CurrentStock } from "@/lib/api/types";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -34,7 +32,7 @@ export default function StockByLocationPage() {
   const router = useRouter();
   const [stocks, setStocks] = useState<CurrentStock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouses[]>([]);
   const [containers, setContainers] = useState<Container[]>([]);
   const [racks, setRacks] = useState<Rack[]>([]);
   const [warehouseId, setWarehouseId] = useState<string>("all");

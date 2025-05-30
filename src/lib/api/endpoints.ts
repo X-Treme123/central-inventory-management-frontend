@@ -67,6 +67,7 @@ export const DEFECT_ENDPOINTS = {
   BASE: '/defect',
   DETAIL: (id: string) => `/defect/${id}`,
   STATUS: (id: string) => `/defect/${id}/status`,
+  STOCK_IN_ITEMS: '/defect/stock-in-items/available',
 } as const;
 
 //=============================================================================

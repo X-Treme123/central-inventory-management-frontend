@@ -1,4 +1,4 @@
-// app/stock/in/create/page.tsx - Simplified untuk barcode scanning workflow
+// app/stock/in/create/page.tsx - With searchable supplier selection
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,16 +9,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { createStockIn } from "@/lib/api/services";
 import { getAllSuppliers, Supplier } from "@/features/pages/suppliers/api/index"
-import { CheckCircle2, AlertCircle, Package, ArrowRight } from "lucide-react";
+import { 
+  CheckCircle2, 
+  AlertCircle, 
+  Package, 
+  ArrowRight, 
+  Check, 
+  ChevronsUpDown,
+  Search 
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function CreateStockInPage() {
   const { token } = useAuth();
@@ -37,6 +51,9 @@ export default function CreateStockInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // State untuk supplier combobox
+  const [supplierOpen, setSupplierOpen] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -101,6 +118,15 @@ export default function CreateStockInPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Helper function untuk mendapatkan nama supplier berdasarkan ID
+  const getSelectedSupplierName = () => {
+    const selectedSupplier = suppliers.find(supplier => supplier.id === formData.supplier_id);
+    return selectedSupplier ? selectedSupplier.name : "Select supplier";
+  };
+
+  // Debug: console log suppliers untuk memastikan data ada
+  console.log("Suppliers data:", suppliers);
 
   if (isLoading) {
     return (
@@ -195,33 +221,76 @@ export default function CreateStockInPage() {
                   </p>
                 </div>
 
-                {/* Supplier Selection - Required */}
+                {/* Supplier Selection - Required dengan Search */}
                 <div>
                   <Label htmlFor="supplier">
                     Supplier <span className="text-red-500">*</span>
                   </Label>
-                  <Select
-                    value={formData.supplier_id}
-                    onValueChange={(value) => setFormData({ ...formData, supplier_id: value })}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          <div>
-                            <div className="font-medium">{supplier.name}</div>
-                            {supplier.contact_person && (
-                              <div className="text-sm text-gray-500">{supplier.contact_person}</div>
-                            )}
+                  <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={supplierOpen}
+                        className="w-full justify-between mt-1"
+                      >
+                        <span className="truncate">
+                          {getSelectedSupplierName()}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Search suppliers..." 
+                          className="h-9"
+                        />
+                        <CommandEmpty>
+                          <div className="flex flex-col items-center py-6 text-center">
+                            <Search className="h-8 w-8 text-gray-400 mb-2" />
+                            <p className="text-sm font-medium text-gray-900">No suppliers found</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Try adjusting your search terms
+                            </p>
                           </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </CommandEmpty>
+                        <CommandGroup className="max-h-64 overflow-auto">
+                          {suppliers.map((supplier) => (
+                            <CommandItem
+                              key={supplier.id}
+                              value={`${supplier.name} ${supplier.contact_person || ''}`}
+                              onSelect={() => {
+                                setFormData({ 
+                                  ...formData, 
+                                  supplier_id: supplier.id
+                                });
+                                setSupplierOpen(false);
+                              }}
+                              className="flex items-center justify-between"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">{supplier.name}</span>
+                                {supplier.contact_person && (
+                                  <span className="text-sm text-gray-500">
+                                    {supplier.contact_person}
+                                  </span>
+                                )}
+                              </div>
+                              <Check
+                                className={cn(
+                                  "ml-2 h-4 w-4",
+                                  formData.supplier_id === supplier.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <p className="text-xs text-gray-500 mt-1">
-                    Choose the supplier for this receipt
+                    Choose the supplier for this receipt (you can search by name)
                   </p>
                 </div>
 

@@ -27,7 +27,8 @@ import {
   AlertCircle,
   Info,
 } from "lucide-react";
-import { getAllCategories, getAllUnits } from "@/lib/api/services";
+import { getAllCategories } from "@/features/pages/categories/api/index";
+import { getAllUnits } from "@/lib/api/services";
 import { Category } from "@/features/pages/categories/api/index";
 import {
   createProductWithBarcode,

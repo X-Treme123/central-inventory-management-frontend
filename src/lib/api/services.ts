@@ -34,7 +34,10 @@ import {
   CreateStockOutForm,
   StockOutItem,
   StockOutWorkflowActions,
-  StockOutStatus
+  StockOutStatus,
+  CreateDefectForm,
+  DefectStatus,
+  StockInItemForDefect
 } from "./types";
 
 //=============================================================================
@@ -559,52 +562,118 @@ export const getBarcodesByStockInItem = async (
 // DEFECT SERVICES
 //=============================================================================
 
+// Create defect report
 export const reportDefect = async (
   token: string,
-  data: {
-    stock_in_item_id: string;
-    unit_id: string;
-    quantity: number;
-    defect_type: string;
-    defect_description?: string;
-  }
+  data: CreateDefectForm
 ): Promise<ApiResponse<DefectItem>> => {
-  return fetchWithAuth(
-    DEFECT_ENDPOINTS.BASE,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-    token
-  );
+  try {
+    const response = await fetchWithAuth(
+      '/defect',
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Report defect error:", error);
+    throw error;
+  }
 };
 
+// Get all defect reports
 export const getAllDefects = async (
   token: string
 ): Promise<ApiResponse<DefectItem[]>> => {
-  return fetchWithAuth(DEFECT_ENDPOINTS.BASE, {}, token);
+  try {
+    const response = await fetchWithAuth('/defect', {}, token);
+    return response;
+  } catch (error) {
+    console.error("Get all defects error:", error);
+    throw error;
+  }
 };
 
+// Get defect report by ID
 export const getDefectById = async (
   token: string,
   id: string
 ): Promise<ApiResponse<DefectItem>> => {
-  return fetchWithAuth(DEFECT_ENDPOINTS.DETAIL(id), {}, token);
+  try {
+    const response = await fetchWithAuth(`/defect/${id}`, {}, token);
+    return response;
+  } catch (error) {
+    console.error("Get defect by ID error:", error);
+    throw error;
+  }
 };
 
+// Update defect status
 export const updateDefectStatus = async (
   token: string,
   id: string,
-  status: 'returned' | 'resolved'
-): Promise<ApiResponse<{ id: string; status: string }>> => {
-  return fetchWithAuth(
-    DEFECT_ENDPOINTS.STATUS(id),
-    {
-      method: "PUT",
-      body: JSON.stringify({ status }),
-    },
-    token
-  );
+  status: DefectStatus
+): Promise<ApiResponse<{ id: string; status: string; updated_at: string }>> => {
+  try {
+    const response = await fetchWithAuth(
+      `/defect/${id}/status`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      },
+      token
+    );
+    return response;
+  } catch (error) {
+    console.error("Update defect status error:", error);
+    throw error;
+  }
+};
+
+// Get stock in items available for defect reporting
+export const getStockInItemsForDefect = async (
+  token: string
+): Promise<ApiResponse<StockInItemForDefect[]>> => {
+  try {
+    const response = await fetchWithAuth('/defect/stock-in-items/available', {}, token);
+    return response;
+  } catch (error) {
+    console.error("Get stock in items for defect error:", error);
+    throw error;
+  }
+};
+
+// Helper function to get defect type options
+export const getDefectTypeOptions = () => {
+  return [
+    { value: 'Damaged Packaging', label: 'Damaged Packaging' },
+    { value: 'Broken', label: 'Broken' },
+    { value: 'Missing Parts', label: 'Missing Parts' },
+    { value: 'Wrong Product', label: 'Wrong Product' },
+    { value: 'Expired', label: 'Expired' },
+    { value: 'Quality Issue', label: 'Quality Issue' },
+    { value: 'Other', label: 'Other' },
+  ];
+};
+
+// Helper function to calculate defect pieces
+export const calculateDefectPieces = (
+  quantity: number,
+  unitName: string,
+  piecesPerPack: number,
+  packsPerBox: number
+): number => {
+  const unitNameLower = unitName.toLowerCase();
+  
+  if (unitNameLower.includes('box') || unitNameLower.includes('dus')) {
+    return quantity * piecesPerPack * packsPerBox;
+  } else if (unitNameLower.includes('pack')) {
+    return quantity * piecesPerPack;
+  } else {
+    return quantity; // pieces
+  }
 };
 
 //=============================================================================
