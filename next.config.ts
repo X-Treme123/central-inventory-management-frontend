@@ -96,9 +96,6 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // ✅ Fix warning multiple lockfiles
-  outputFileTracingRoot: path.join(__dirname, '../../'),
-
   // Settings
   reactStrictMode: true,
   poweredByHeader: false,
