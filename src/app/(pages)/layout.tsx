@@ -76,10 +76,10 @@ export default function DashboardLayout({
   const toggleDarkMode = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove("dark");
-      Cookies.set("theme", "light", { expires: 365 });
+      Cookies.set("theme", "dark", { expires: 365 });
     } else {
       document.documentElement.classList.add("dark");
-      Cookies.set("theme", "dark", { expires: 365 });
+      Cookies.set("theme", "light", { expires: 365 });
     }
     setIsDarkMode(!isDarkMode);
   };
@@ -456,21 +456,21 @@ export default function DashboardLayout({
           {/* Right side actions */}
           <div className="flex items-center gap-3">
             {/* Notifications */}
-            <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
+            {/* <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
               <Bell size={20} />
-            </button>
+            </button> */}
 
             {/* Help */}
-            <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
+            {/* <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
               <HelpCircle size={20} />
-            </button>
+            </button> */}
 
             {/* Dark mode toggle */}
-            <button
+            {/* <button
               className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none"
               onClick={toggleDarkMode}>
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
+            </button> */}
 
             {/* User menu */}
             <div className="relative">
