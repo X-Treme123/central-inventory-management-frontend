@@ -2,23 +2,30 @@ import type { NextConfig } from "next";
 import path from 'path';
 
 const nextConfig: NextConfig = {
-  // Enable experimental features for better performance
+  // ✅ Disable ESLint & TypeScript errors saat build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
+  // Experimental features
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
 
-  // Image optimization configuration
+  // Image optimization
   images: {
-    // ✅ Tambahkan domain API Anda jika ada gambar dari backend
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**.yourdomain.com', // Ganti dengan domain backend Anda
+        hostname: '**.yourdomain.com',
       },
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '8000', // Port backend lokal
+        port: '8000',
       },
     ],
     formats: ['image/webp', 'image/avif'],
@@ -26,7 +33,7 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Environment variables yang tersedia di client-side
+  // Environment variables
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
@@ -34,16 +41,6 @@ const nextConfig: NextConfig = {
   // Build optimization
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
-  },
-
-  // ✅ Tambahkan ini untuk disable ESLint saat build
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  
-  // ✅ Tambahkan ini juga untuk disable TypeScript errors
-  typescript: {
-    ignoreBuildErrors: true,
   },
 
   // Security headers
@@ -84,36 +81,26 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // ✅ Webpack config digabung
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Alias untuk path
+  // Webpack config
+  webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname, 'src'),
     };
 
-    // Handle SVG imports
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack'],
     });
 
-    // Development-specific optimizations
-    if (dev) {
-      config.watchOptions = {
-        poll: 1000,
-        aggregateTimeout: 300,
-      };
-    }
-
     return config;
   },
 
-  // ❌ HAPUS output: 'standalone' untuk Vercel
-  // output: 'standalone', // <-- INI DIHAPUS
-  
+  // ✅ Fix warning multiple lockfiles
+  outputFileTracingRoot: path.join(__dirname, '../../'),
+
+  // Settings
   reactStrictMode: true,
-  swcMinify: true,
   poweredByHeader: false,
   compress: true,
 };
