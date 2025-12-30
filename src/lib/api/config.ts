@@ -1,7 +1,7 @@
 // lib/api/config.ts
 import Cookies from 'js-cookie';
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3307';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Default options for fetch
 export const defaultOptions = {

@@ -211,7 +211,7 @@ export default function DashboardPage() {
 
   // Process stock history to get stock in/out by date
   stockHistory.forEach((history) => {
-    const date = new Date(history.transaction_date).toISOString().split("T")[0];
+    const date = new Date(history.created_at).toISOString().split("T")[0];
 
     if (history.transaction_type === "stock_in") {
       const current = stockInByDate.get(date) || 0;
@@ -253,17 +253,21 @@ export default function DashboardPage() {
 
   // Format date
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
@@ -285,216 +289,216 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <Separator />
+
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card
-          className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer transition-colors"
-          onClick={navigateToStockIn}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="bg-blue-500 text-white p-3 rounded-full">
-              <Truck size={24} />
-            </div>
-            <div>
-              <h3 className="font-medium">Stock In</h3>
-              <p className="text-sm text-muted-foreground">
-                Record new incoming items
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card
+            className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer transition-all hover:shadow-md"
+            onClick={navigateToStockIn}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-blue-500 text-white p-3 rounded-lg shrink-0">
+                  <Truck className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-base">Stock In</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Record new incoming items
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card
-          className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900 cursor-pointer transition-colors"
-          onClick={navigateToStockOut}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="bg-green-500 text-white p-3 rounded-full">
-              <ShoppingCart size={24} />
-            </div>
-            <div>
-              <h3 className="font-medium">Stock Out</h3>
-              <p className="text-sm text-muted-foreground">
-                Process item requests
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card
+            className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900 cursor-pointer transition-all hover:shadow-md"
+            onClick={navigateToStockOut}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-green-500 text-white p-3 rounded-lg shrink-0">
+                  <ShoppingCart className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-base">Stock Out</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Process item requests
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-
-        <Card
-          className="bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900 cursor-pointer transition-colors"
-          onClick={navigateToReports}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="bg-purple-500 text-white p-3 rounded-full">
-              <BarChart2 size={24} />
-            </div>
-            <div>
-              <h3 className="font-medium">Analytics</h3>
-              <p className="text-sm text-muted-foreground">
-                View inventory reports
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card
+            className="bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900 cursor-pointer transition-all hover:shadow-md"
+            onClick={navigateToReports}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-purple-500 text-white p-3 rounded-lg shrink-0">
+                  <BarChart2 className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-base">Analytics</h3>
+                  <p className="text-sm text-muted-foreground">
+                    View inventory reports
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total Inventory Value
-                </p>
-                {loading ? (
-                  <Skeleton className="h-7 w-28 mt-1" />
-                ) : (
-                  <p className="text-xl font-bold">1.000.000</p>
-
-                  // <p className="text-xl font-bold">{formatCurrency(totalStockValue)}</p>
-                )}
-              </div>
-              <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full">
-                <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total Stock Items
-                </p>
-                {loading ? (
-                  <Skeleton className="h-7 w-28 mt-1" />
-                ) : (
-                  <p className="text-xl font-bold">
-                    {totalStockItems.toLocaleString()}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Stock Overview</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Stock Items
                   </p>
-                )}
+                  {loading ? (
+                    <Skeleton className="h-8 w-32" />
+                  ) : (
+                    <p className="text-2xl font-bold">
+                      {totalStockItems.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+                <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                  <Package className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
               </div>
-              <div className="bg-green-100 dark:bg-green-900 p-2 rounded-full">
-                <Package className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Low Stock Items</p>
-                {loading ? (
-                  <Skeleton className="h-7 w-28 mt-1" />
-                ) : (
-                  <p className="text-xl font-bold">{lowStockProducts}</p>
-                )}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Low Stock Items
+                  </p>
+                  {loading ? (
+                    <Skeleton className="h-8 w-32" />
+                  ) : (
+                    <p className="text-2xl font-bold">{lowStockProducts}</p>
+                  )}
+                </div>
+                <div className="bg-amber-100 dark:bg-amber-900 p-3 rounded-lg">
+                  <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
               </div>
-              <div className="bg-amber-100 dark:bg-amber-900 p-2 rounded-full">
-                <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Master Data Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total Warehouses
-                </p>
-                {loading ? (
-                  <Skeleton className="h-7 w-16 mt-1" />
-                ) : (
-                  <p className="text-xl font-bold">{warehouses.length}</p>
-                )}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Master Data</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Warehouses
+                  </p>
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <p className="text-2xl font-bold">{warehouses.length}</p>
+                  )}
+                </div>
+                <div className="bg-indigo-100 dark:bg-indigo-900 p-3 rounded-lg">
+                  <Grid className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                </div>
               </div>
-              <div className="bg-indigo-100 dark:bg-indigo-900 p-2 rounded-full">
-                <Grid className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Products</p>
-                {loading ? (
-                  <Skeleton className="h-7 w-16 mt-1" />
-                ) : (
-                  <p className="text-xl font-bold">{products.length}</p>
-                )}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Products
+                  </p>
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <p className="text-2xl font-bold">{products.length}</p>
+                  )}
+                </div>
+                <div className="bg-violet-100 dark:bg-violet-900 p-3 rounded-lg">
+                  <Box className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                </div>
               </div>
-              <div className="bg-violet-100 dark:bg-violet-900 p-2 rounded-full">
-                <Box className="h-6 w-6 text-violet-600 dark:text-violet-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Suppliers</p>
-                {loading ? (
-                  <Skeleton className="h-7 w-16 mt-1" />
-                ) : (
-                  <p className="text-xl font-bold">{suppliers.length}</p>
-                )}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Suppliers
+                  </p>
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <p className="text-2xl font-bold">{suppliers.length}</p>
+                  )}
+                </div>
+                <div className="bg-teal-100 dark:bg-teal-900 p-3 rounded-lg">
+                  <Truck className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                </div>
               </div>
-              <div className="bg-teal-100 dark:bg-teal-900 p-2 rounded-full">
-                <Truck className="h-6 w-6 text-teal-600 dark:text-teal-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total Departments
-                </p>
-                {loading ? (
-                  <Skeleton className="h-7 w-16 mt-1" />
-                ) : (
-                  <p className="text-xl font-bold">{departments.length}</p>
-                )}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Departments
+                  </p>
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <p className="text-2xl font-bold">{departments.length}</p>
+                  )}
+                </div>
+                <div className="bg-orange-100 dark:bg-orange-900 p-3 rounded-lg">
+                  <Users className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
               </div>
-              <div className="bg-orange-100 dark:bg-orange-900 p-2 rounded-full">
-                <Users className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Charts and Recent Activities */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Stock In vs Stock Out Chart */}
-        <Card className="col-span-1">
+        <Card>
           <CardHeader>
-            <CardTitle>Stock In vs Stock Out (Last 7 Days)</CardTitle>
+            <CardTitle>Stock In vs Stock Out</CardTitle>
             <CardDescription>
-              Compare incoming and outgoing inventory
+              Compare incoming and outgoing inventory (Last 7 Days)
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="w-full h-[300px] flex items-center justify-center">
-                <Skeleton className="h-[250px] w-full" />
+                <Skeleton className="h-[280px] w-full" />
               </div>
             ) : stockTrends.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
@@ -524,9 +528,9 @@ export default function DashboardPage() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-[300px] border rounded-lg border-dashed p-4">
-                <BarChart2 size={48} className="text-muted-foreground mb-4" />
-                <p className="text-muted-foreground text-center">
+              <div className="flex flex-col items-center justify-center h-[300px] border-2 rounded-lg border-dashed">
+                <BarChart2 size={48} className="text-muted-foreground mb-2" />
+                <p className="text-muted-foreground text-sm">
                   No stock data available for the last 7 days
                 </p>
               </div>
@@ -535,7 +539,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Category Distribution Chart */}
-        <Card className="col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle>Category Distribution</CardTitle>
             <CardDescription>Inventory breakdown by category</CardDescription>
@@ -543,7 +547,7 @@ export default function DashboardPage() {
           <CardContent>
             {loading ? (
               <div className="w-full h-[300px] flex items-center justify-center">
-                <Skeleton className="h-[250px] w-full" />
+                <Skeleton className="h-[280px] w-full" />
               </div>
             ) : categoryDistribution.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
@@ -570,9 +574,9 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-[300px] border rounded-lg border-dashed p-4">
-                <Layers size={48} className="text-muted-foreground mb-4" />
-                <p className="text-muted-foreground text-center">
+              <div className="flex flex-col items-center justify-center h-[300px] border-2 rounded-lg border-dashed">
+                <Layers size={48} className="text-muted-foreground mb-2" />
+                <p className="text-muted-foreground text-sm">
                   No category data available
                 </p>
               </div>
@@ -582,165 +586,163 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Activities */}
-      <Tabs defaultValue="stock-in" className="w-full">
-        <TabsList className="grid grid-cols-3 mb-4">
-          <TabsTrigger value="stock-in">Recent Stock In</TabsTrigger>
-          <TabsTrigger value="stock-out">Recent Stock Out</TabsTrigger>
-        </TabsList>
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Recent Activities</h2>
+        <Tabs defaultValue="stock-in" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="stock-in">Recent Stock In</TabsTrigger>
+            <TabsTrigger value="stock-out">Recent Stock Out</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="stock-in">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Stock In Transactions</CardTitle>
-              <CardDescription>Latest inventory receipts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex justify-between items-center">
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-48" />
-                        <Skeleton className="h-3 w-32" />
+          <TabsContent value="stock-in" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Stock In Transactions</CardTitle>
+                <CardDescription>Latest inventory receipts</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between items-center py-3 border-b last:border-0">
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-48" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="h-6 w-24" />
                       </div>
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                  ))}
-                </div>
-              ) : recentStockIn.length > 0 ? (
-                <div className="space-y-4">
-                  {recentStockIn.map((stockIn) => (
-                    <div
-                      key={stockIn.id}
-                      className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">{stockIn.invoice_code}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {stockIn.supplier_name} -{" "}
-                          {formatDate(stockIn.receipt_date)}
-                        </p>
-                      </div>
-                      <div>
-                        <div
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            stockIn.status === "completed"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : stockIn.status === "pending"
+                    ))}
+                  </div>
+                ) : recentStockIn.length > 0 ? (
+                  <div className="space-y-0 divide-y">
+                    {recentStockIn.map((stockIn) => (
+                      <div
+                        key={stockIn.id}
+                        className="flex justify-between items-center py-4 first:pt-0 last:pb-0">
+                        <div className="space-y-1">
+                          <p className="font-medium">{stockIn.invoice_code}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {stockIn.supplier_name} •{" "}
+                            {formatDate(stockIn.receipt_date)}
+                          </p>
+                        </div>
+                        <div>
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              stockIn.status === "completed"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                : stockIn.status === "pending"
                                 ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
                                 : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                          }`}>
-                          {stockIn.status.toUpperCase()}
+                            }`}>
+                            {stockIn.status.toUpperCase()}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <Truck size={48} className="text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    No recent stock in transactions
-                  </p>
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Truck size={48} className="text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">
+                      No recent stock in transactions
+                    </p>
+                  </div>
+                )}
 
-              {recentStockIn.length > 0 && (
-                <div className="mt-6 flex justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push("/stock/in")}>
-                    View All Stock In
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                {recentStockIn.length > 0 && (
+                  <div className="mt-6 pt-4 border-t flex justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/stock/in")}>
+                      View All Stock In
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="stock-out">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Stock Out Transactions</CardTitle>
-              <CardDescription>Latest inventory distributions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex justify-between items-center">
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-48" />
-                        <Skeleton className="h-3 w-32" />
+          <TabsContent value="stock-out" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Stock Out Transactions</CardTitle>
+                <CardDescription>Latest inventory distributions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between items-center py-3 border-b last:border-0">
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-48" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="h-6 w-24" />
                       </div>
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                  ))}
-                </div>
-              ) : recentStockOut.length > 0 ? (
-                <div className="space-y-4">
-                  {recentStockOut.map((stockOut) => (
-                    <div
-                      key={stockOut.id}
-                      className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">
-                          {stockOut.reference_number}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {stockOut.department_name} - {stockOut.requestor_name}
-                        </p>
-                      </div>
-                      <div>
-                        <div
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            stockOut.status === "completed"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : stockOut.status === "approved"
+                    ))}
+                  </div>
+                ) : recentStockOut.length > 0 ? (
+                  <div className="space-y-0 divide-y">
+                    {recentStockOut.map((stockOut) => (
+                      <div
+                        key={stockOut.id}
+                        className="flex justify-between items-center py-4 first:pt-0 last:pb-0">
+                        <div className="space-y-1">
+                          <p className="font-medium">
+                            {stockOut.reference_number}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {stockOut.department_name} • {stockOut.requestor_name}
+                          </p>
+                        </div>
+                        <div>
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              stockOut.status === "completed"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                : stockOut.status === "approved"
                                 ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                                 : stockOut.status === "pending"
-                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                                  : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                          }`}>
-                          {stockOut.status.toUpperCase()}
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            }`}>
+                            {stockOut.status.toUpperCase()}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <ShoppingCart
-                    size={48}
-                    className="text-muted-foreground mb-4"
-                  />
-                  <p className="text-muted-foreground">
-                    No recent stock out transactions
-                  </p>
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <ShoppingCart
+                      size={48}
+                      className="text-muted-foreground mb-3"
+                    />
+                    <p className="text-muted-foreground">
+                      No recent stock out transactions
+                    </p>
+                  </div>
+                )}
 
-              {recentStockOut.length > 0 && (
-                <div className="mt-6 flex justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push("/stock/out")}>
-                    View All Stock Out
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="defects">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Defect Reports</CardTitle>
-              <CardDescription>Latest reported defective items</CardDescription>
-            </CardHeader>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                {recentStockOut.length > 0 && (
+                  <div className="mt-6 pt-4 border-t flex justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/stock/out")}>
+                      View All Stock Out
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

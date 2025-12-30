@@ -383,8 +383,8 @@ export interface CurrentStock {
 export interface StockHistory {
   id: string;
   product_id: string;
-  transaction_type: 'stock_in' | 'stock_out' | 'defect' | 'adjustment';
-  reference_id: string;
+  transaction_type: 'stock_in' | 'stock_out' | 'adjustment';
+  reference_id?: string;
   quantity: number;
   unit_id: string;
   total_pieces: number;
@@ -394,11 +394,12 @@ export interface StockHistory {
   container_id: string;
   rack_id: string;
   user_id: number;
-  transaction_date: string;
-  notes: string | null;
-  created_at: string;
+  notes?: string;
+  created_at: string;  // ✅ Harus created_at, bukan transaction_date
+  // Additional fields from JOIN
   product_name?: string;
   part_number?: string;
+  product_price?: number;
   unit_name?: string;
   warehouse_name?: string;
   container_name?: string;

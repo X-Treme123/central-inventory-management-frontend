@@ -27,12 +27,6 @@ export default function ReportsPage() {
       icon: <ClipboardList className="h-6 w-6" />,
       path: "/reports/monthly",
     },
-    {
-      title: "Stok Berdasarkan Lokasi",
-      description: "Lihat stok barang berdasarkan lokasi penyimpanan",
-      icon: <MapPin className="h-6 w-6" />,
-      path: "/reports/by-location",
-    },
   ];
 
   return (

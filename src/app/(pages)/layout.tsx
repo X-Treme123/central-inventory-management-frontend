@@ -139,12 +139,6 @@ export default function DashboardLayout({
       ]
     },
     {
-      name: "Defects",
-      path: "/defects",
-      icon: <AlertTriangle size={20} />,
-      description: "Manage defective items",
-    },
-    {
       name: "Products",
       path: "/products",
       icon: <Package size={20} />,
