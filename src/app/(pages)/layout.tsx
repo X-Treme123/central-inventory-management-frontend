@@ -51,23 +51,30 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // ✅ PERUBAHAN: Default ke true (dark mode)
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
-    stock: pathname.startsWith('/stock') // Auto expand if currently on stock page
+    stock: pathname.startsWith('/stock')
   });
 
-  // Handle theme switching using cookies instead of localStorage
+  // ✅ PERUBAHAN: Logika theme yang diperbaiki - default ke dark
   useEffect(() => {
-    // Check if user has preferred dark mode before
     const savedTheme = Cookies.get("theme");
-    if (
-      savedTheme === "dark" ||
-      (!savedTheme && typeof window !== 'undefined' && window.matchMedia("(prefers-color-scheme: dark)").matches)
-    ) {
+    
+    // Jika ada saved theme, gunakan itu
+    if (savedTheme === "light") {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove("dark");
+    } else {
+      // Default ke dark mode (jika tidak ada cookie atau cookie = "dark")
       setIsDarkMode(true);
       document.documentElement.classList.add("dark");
+      // Set cookie dark sebagai default jika belum ada
+      if (!savedTheme) {
+        Cookies.set("theme", "dark", { expires: 365 });
+      }
     }
 
     setIsLoaded(true);
@@ -76,12 +83,13 @@ export default function DashboardLayout({
   const toggleDarkMode = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove("dark");
-      Cookies.set("theme", "dark", { expires: 365 });
+      Cookies.set("theme", "light", { expires: 365 });
+      setIsDarkMode(false);
     } else {
       document.documentElement.classList.add("dark");
-      Cookies.set("theme", "light", { expires: 365 });
+      Cookies.set("theme", "dark", { expires: 365 });
+      setIsDarkMode(true);
     }
-    setIsDarkMode(!isDarkMode);
   };
 
   // Check window size on resize
@@ -94,9 +102,7 @@ export default function DashboardLayout({
       }
     };
 
-    // Call once on mount
     handleResize();
-
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -109,7 +115,7 @@ export default function DashboardLayout({
     }));
   };
 
-  // Navigation items with their paths and icons - Enhanced with stock grouping
+  // Navigation items
   const navItems: NavItem[] = [
     {
       name: "Dashboard",
@@ -170,10 +176,8 @@ export default function DashboardLayout({
     },
   ];
 
-  // Check if any stock path is active
   const isStockActive = pathname.startsWith('/stock');
 
-  // Auto expand stock group if we're on a stock page
   useEffect(() => {
     if (isStockActive && !expandedGroups.stock) {
       setExpandedGroups(prev => ({ ...prev, stock: true }));
@@ -189,7 +193,6 @@ export default function DashboardLayout({
 
       return (
         <div key={item.path}>
-          {/* Group Header */}
           <button
             onClick={() => toggleGroup('stock')}
             className={`
@@ -202,7 +205,6 @@ export default function DashboardLayout({
               group relative overflow-hidden
             `}>
             
-            {/* Animated background */}
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100"
               initial={{ x: '-100%' }}
@@ -248,7 +250,6 @@ export default function DashboardLayout({
               </>
             )}
 
-            {/* Tooltip for collapsed sidebar */}
             {!isSidebarOpen && !isMobile && item.description && (
               <div className="absolute left-14 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                 <div className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-2 rounded-md text-sm whitespace-nowrap shadow-lg">
@@ -262,7 +263,6 @@ export default function DashboardLayout({
             )}
           </button>
 
-          {/* Children with Animation */}
           <AnimatePresence>
             {isExpanded && (isSidebarOpen || isMobile) && item.children && (
               <motion.div
@@ -303,7 +303,6 @@ export default function DashboardLayout({
                       `}
                       onClick={isMobile ? () => setIsMobileMenuOpen(false) : undefined}>
                       
-                      {/* Animated background */}
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-lg opacity-0 group-hover:opacity-100"
                         initial={{ scale: 0.8 }}
@@ -323,7 +322,6 @@ export default function DashboardLayout({
                         {child.name}
                       </span>
 
-                      {/* Active indicator */}
                       {(pathname === child.path || pathname.startsWith(child.path + '/')) && (
                         <motion.div
                           className="ml-auto relative z-10"
@@ -343,7 +341,6 @@ export default function DashboardLayout({
       );
     }
 
-    // Regular nav item (non-group)
     return (
       <Link
         key={item.path}
@@ -359,7 +356,6 @@ export default function DashboardLayout({
         `}
         onClick={isMobile ? () => setIsMobileMenuOpen(false) : undefined}>
         
-        {/* Animated background */}
         <motion.div
           className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100"
           initial={{ x: '-100%' }}
@@ -386,7 +382,6 @@ export default function DashboardLayout({
           </motion.span>
         )}
 
-        {/* Tooltip for collapsed sidebar */}
         {!isSidebarOpen && !isMobile && item.description && (
           <div className="absolute left-14 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="bg-gray-900 dark:bg-gray-700 text-white px-3 py-2 rounded-md text-sm whitespace-nowrap shadow-lg">
@@ -404,20 +399,17 @@ export default function DashboardLayout({
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div
-      className={`min-h-screen flex flex-col transition-colors duration-300 ${isDarkMode ? "dark" : ""}`}>
-      {/* Top Navigation Bar */}
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDarkMode ? "dark" : ""}`}>
       <header className="sticky top-0 z-30 backdrop-blur-md bg-white/90 dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Mobile menu button */}
             <button
               type="button"
               className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 md:hidden"
@@ -426,7 +418,6 @@ export default function DashboardLayout({
               <Menu className="h-6 w-6" />
             </button>
 
-            {/* Logo/Brand */}
             <Link
               href="/dashboard"
               className="flex items-center space-x-2 font-bold text-lg text-blue-600 dark:text-blue-400">
@@ -437,7 +428,6 @@ export default function DashboardLayout({
               />
             </Link>
 
-            {/* Sidebar toggle for desktop */}
             <button
               type="button"
               className="hidden md:flex p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
@@ -453,26 +443,21 @@ export default function DashboardLayout({
             </button>
           </div>
 
-          {/* Right side actions */}
           <div className="flex items-center gap-3">
-            {/* Notifications */}
             {/* <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
               <Bell size={20} />
-            </button> */}
+            </button>
 
-            {/* Help */}
-            {/* <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
+            <button className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
               <HelpCircle size={20} />
-            </button> */}
+            </button>
 
-            {/* Dark mode toggle */}
-            {/* <button
+            <button
               className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none"
               onClick={toggleDarkMode}>
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button> */}
 
-            {/* User menu */}
             <div className="relative">
               <button
                 className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -494,7 +479,6 @@ export default function DashboardLayout({
                 />
               </button>
 
-              {/* User dropdown */}
               <AnimatePresence>
                 {isUserMenuOpen && (
                   <motion.div
@@ -543,7 +527,6 @@ export default function DashboardLayout({
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Mobile Sidebar/Navigation */}
         <AnimatePresence>
           {isMobileMenuOpen && (
             <>
@@ -611,7 +594,6 @@ export default function DashboardLayout({
           )}
         </AnimatePresence>
 
-        {/* Desktop Sidebar */}
         <motion.div
           initial={false}
           animate={{
@@ -624,7 +606,6 @@ export default function DashboardLayout({
               {navItems.map((item) => renderNavItem(item))}
             </div>
 
-            {/* User info at bottom when sidebar is open */}
             <AnimatePresence initial={false}>
               {isSidebarOpen && (
                 <motion.div
@@ -652,7 +633,6 @@ export default function DashboardLayout({
           </div>
         </motion.div>
 
-        {/* Main content */}
         <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
