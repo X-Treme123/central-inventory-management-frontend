@@ -387,22 +387,7 @@ export default function ProductsPage() {
             <Scan className="h-5 w-5" />
             Quick Product Lookup
           </CardTitle>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>Scan Barcode</Button>
-            </DialogTrigger>
-
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Scan Product</DialogTitle>
-                <DialogDescription>
-                  Scan or enter a barcode to quickly find product information
-                </DialogDescription>
-              </DialogHeader>
-
-              {/* Form atau komponen lainnya */}
-            </DialogContent>
-          </Dialog>
+          
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 items-end">

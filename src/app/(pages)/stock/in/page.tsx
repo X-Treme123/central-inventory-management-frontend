@@ -1,4 +1,4 @@
-// app/stock/in/page.tsx - Enhanced with consistent card layout
+// app/stock/in/page.tsx - Fixed card alignment
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -278,24 +278,6 @@ export default function StockInPage() {
     return { itemCount, unitTypes, totalQuantity };
   };
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: "easeOut" }
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-6 p-6">
@@ -304,8 +286,8 @@ export default function StockInPage() {
           <Skeleton className="h-4 w-96" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[...Array(6)].map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -388,106 +370,76 @@ export default function StockInPage() {
 
       <Separator />
 
-      {/* Stats Cards - Consistent Layout */}
+      {/* Stats Cards - Fixed Layout */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Overview</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Records Card */}
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">
                     Total Records
                   </p>
                   <p className="text-2xl font-bold">{stats.total}</p>
                   <p className="text-xs text-muted-foreground">All receipts</p>
                 </div>
-                <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg flex-shrink-0">
                   <Database className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* Completed Card */}
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">
                     Completed
                   </p>
                   <p className="text-2xl font-bold">{stats.completed}</p>
                   <p className="text-xs text-muted-foreground">Fully processed</p>
                 </div>
-                <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg flex-shrink-0">
                   <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* Pending Card */}
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">
                     Pending
                   </p>
                   <p className="text-2xl font-bold">{stats.pending}</p>
                   <p className="text-xs text-muted-foreground">In progress</p>
                 </div>
-                <div className="bg-amber-100 dark:bg-amber-900 p-3 rounded-lg">
+                <div className="bg-amber-100 dark:bg-amber-900 p-3 rounded-lg flex-shrink-0">
                   <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* Today's Receipts Card */}
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total Value
-                  </p>
-                  <p className="text-2xl font-bold">{formatCurrency(stats.value)}</p>
-                  <p className="text-xs text-muted-foreground">Inventory value</p>
-                </div>
-                <div className="bg-purple-100 dark:bg-purple-900 p-3 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total Items
-                  </p>
-                  <p className="text-2xl font-bold">{stats.totalItems}</p>
-                  <p className="text-xs text-muted-foreground">Product items</p>
-                </div>
-                <div className="bg-teal-100 dark:bg-teal-900 p-3 rounded-lg">
-                  <Package className="h-6 w-6 text-teal-600 dark:text-teal-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">
                     Today's Receipts
                   </p>
                   <p className="text-2xl font-bold">{stats.todayReceipts}</p>
                   <p className="text-xs text-muted-foreground">Received today</p>
                 </div>
-                <div className="bg-pink-100 dark:bg-pink-900 p-3 rounded-lg">
+                <div className="bg-pink-100 dark:bg-pink-900 p-3 rounded-lg flex-shrink-0">
                   <Calendar className="h-6 w-6 text-pink-600 dark:text-pink-400" />
                 </div>
               </div>
@@ -609,7 +561,6 @@ export default function StockInPage() {
                       </div>
                     </TableHead>
                     <TableHead>Supplier & Date</TableHead>
-                    <TableHead>Scanning Progress</TableHead>
                     <TableHead 
                       className="cursor-pointer"
                       onClick={() => handleSort("status")}>
@@ -662,53 +613,6 @@ export default function StockInPage() {
                                 day: 'numeric'
                               })}
                             </div>
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                                <QrCode className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                              </div>
-                              <div>
-                                <span className="font-medium">
-                                  {itemsInfo.itemCount} items
-                                </span>
-                                <div className="text-xs text-muted-foreground">
-                                  {itemsInfo.totalQuantity} total quantity
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {itemsInfo.itemCount > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {itemsInfo.unitTypes.piece > 0 && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    <Package className="h-3 w-3 mr-1" />
-                                    {itemsInfo.unitTypes.piece} PC
-                                  </Badge>
-                                )}
-                                {itemsInfo.unitTypes.pack > 0 && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    <Layers className="h-3 w-3 mr-1" />
-                                    {itemsInfo.unitTypes.pack} PK
-                                  </Badge>
-                                )}
-                                {itemsInfo.unitTypes.box > 0 && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    <Box className="h-3 w-3 mr-1" />
-                                    {itemsInfo.unitTypes.box} BX
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                            
-                            {totalValue > 0 && (
-                              <div className="text-sm font-medium bg-muted px-2 py-1 rounded">
-                                {formatCurrency(totalValue)}
-                              </div>
-                            )}
                           </div>
                         </TableCell>
                         

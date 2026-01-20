@@ -92,8 +92,6 @@ export default function MonthlyReportPage() {
       "Barang Masuk (Nilai)": `Rp ${report.incoming_amount.toLocaleString("id-ID")}`,
       "Barang Keluar (Qty)": report.outgoing_qty,
       "Barang Keluar (Nilai)": `Rp ${report.outgoing_amount.toLocaleString("id-ID")}`,
-      "Barang Rusak (Qty)": report.defect_qty,
-      "Barang Rusak (Nilai)": `Rp ${report.defect_amount.toLocaleString("id-ID")}`,
       "Stok Akhir (Qty)": report.closing_qty,
       "Stok Akhir (Nilai)": `Rp ${report.closing_amount.toLocaleString("id-ID")}`,
     }));
@@ -229,12 +227,9 @@ export default function MonthlyReportPage() {
                     <TableHead colSpan={2} className="text-center">Stok Awal</TableHead>
                     <TableHead colSpan={2} className="text-center">Barang Masuk</TableHead>
                     <TableHead colSpan={2} className="text-center">Barang Keluar</TableHead>
-                    <TableHead colSpan={2} className="text-center">Barang Rusak</TableHead>
                     <TableHead colSpan={2} className="text-center">Stok Akhir</TableHead>
                   </TableRow>
                   <TableRow>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Nilai</TableHead>
                     <TableHead className="text-right">Qty</TableHead>
                     <TableHead className="text-right">Nilai</TableHead>
                     <TableHead className="text-right">Qty</TableHead>
@@ -258,8 +253,6 @@ export default function MonthlyReportPage() {
                       <TableCell className="text-right">Rp {report.incoming_amount.toLocaleString("id-ID")}</TableCell>
                       <TableCell className="text-right">{report.outgoing_qty}</TableCell>
                       <TableCell className="text-right">Rp {report.outgoing_amount.toLocaleString("id-ID")}</TableCell>
-                      <TableCell className="text-right">{report.defect_qty}</TableCell>
-                      <TableCell className="text-right">Rp {report.defect_amount.toLocaleString("id-ID")}</TableCell>
                       <TableCell className="text-right">{report.closing_qty}</TableCell>
                       <TableCell className="text-right">Rp {report.closing_amount.toLocaleString("id-ID")}</TableCell>
                     </TableRow>

@@ -296,7 +296,7 @@ export default function StockHistoryPage() {
                   {history.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        {new Date(item.transaction_date).toLocaleString(
+                        {new Date(item.created_at).toLocaleString(
                           "id-ID",
                           {
                             year: "numeric",
