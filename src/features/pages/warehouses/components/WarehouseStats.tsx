@@ -39,17 +39,10 @@ export const WarehouseStats = ({
       bgColor: "bg-purple-100 dark:bg-purple-900",
       iconColor: "text-purple-600 dark:text-purple-400"
     },
-    {
-      title: "Average Utilization",
-      value: averageUtilization,
-      icon: AlertTriangle,
-      bgColor: "bg-orange-100 dark:bg-orange-900",
-      iconColor: "text-orange-600 dark:text-orange-400"
-    }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {stats.map((stat, index) => (
         <Card key={index}>
           <CardContent className="p-4">

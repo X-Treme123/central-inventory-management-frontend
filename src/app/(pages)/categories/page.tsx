@@ -173,7 +173,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -191,22 +191,8 @@ export default function CategoriesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <Package className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">With Products</p>
-                <p className="text-2xl font-bold">{categoriesWithProducts}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
               <div className="p-2 bg-gray-100 dark:bg-gray-900 rounded-lg">
-                <Folder className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                <Folder className="h-6 w-6 text-gray-400 dark:text-gray-400" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Empty Categories</p>

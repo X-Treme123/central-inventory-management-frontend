@@ -254,7 +254,7 @@ export default function ProductsPage() {
         </div>
       )}
       {getBarcodeCount(product) === 0 && (
-        <div className="text-xs text-gray-500 italic">No barcodes</div>
+        <div className="text-xs text-gray-400 italic">No barcodes</div>
       )}
     </div>
   );
@@ -282,7 +282,7 @@ export default function ProductsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading products...</p>
+          <p className="mt-4 text-gray-400">Loading products...</p>
         </div>
       </div>
     );
@@ -294,7 +294,7 @@ export default function ProductsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Products</h1>
-            <p className="text-gray-600">
+            <p className="text-gray-400">
               Manage your product catalog with barcode support
             </p>
           </div>
@@ -308,7 +308,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -316,7 +316,7 @@ export default function ProductsPage() {
                 <Package className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Products</p>
+                <p className="text-sm text-gray-400">Total Products</p>
                 <p className="text-xl font-bold">{stats.totalProducts}</p>
               </div>
             </div>
@@ -330,26 +330,26 @@ export default function ProductsPage() {
                 <Scan className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">With Barcodes</p>
+                <p className="text-sm text-gray-400">With Barcodes</p>
                 <p className="text-xl font-bold">{stats.withBarcodes}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        {/* <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">In Stock</p>
+                <p className="text-sm text-gray-400">In Stock</p>
                 <p className="text-xl font-bold">{stats.inStock}</p>
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card>
           <CardContent className="p-4">
@@ -358,26 +358,26 @@ export default function ProductsPage() {
                 <AlertCircle className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Low Stock</p>
+                <p className="text-sm text-gray-400">Low Stock</p>
                 <p className="text-xl font-bold">{stats.lowStock}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        {/* <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-100 rounded-lg">
                 <AlertCircle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Out of Stock</p>
+                <p className="text-sm text-gray-400">Out of Stock</p>
                 <p className="text-xl font-bold">{stats.outOfStock}</p>
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Quick Scan Section */}
@@ -481,7 +481,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-400">
                 <Filter className="h-4 w-4" />
                 <span>{filteredProducts.length} products</span>
               </div>
@@ -518,10 +518,10 @@ export default function ProductsPage() {
                       <TableCell>
                         <div>
                           <div className="font-medium">{product.name}</div>
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-gray-400">
                             {product.part_number}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-400">
                             {product.category_name} • {product.base_unit_name}
                           </div>
                         </div>
@@ -529,7 +529,7 @@ export default function ProductsPage() {
 
                       <TableCell>
                         <BarcodeDisplay product={product} />
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-400 mt-1">
                           {getBarcodeCount(product)} barcode(s)
                         </div>
                       </TableCell>
@@ -538,7 +538,7 @@ export default function ProductsPage() {
                         <div className="text-sm space-y-1">
                           <div>1 Pack = {product.pieces_per_pack} pieces</div>
                           <div>1 Box = {product.packs_per_box} packs</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-400">
                             = {product.pieces_per_pack * product.packs_per_box}{" "}
                             pieces/box
                           </div>
@@ -559,7 +559,7 @@ export default function ProductsPage() {
                           </div>
                           {product.total_stock_pieces &&
                             product.total_stock_pieces > 0 && (
-                              <div className="text-xs text-gray-500 space-y-1">
+                              <div className="text-xs text-gray-400 space-y-1">
                                 <div>
                                   {Math.floor(
                                     product.total_stock_pieces /
@@ -584,7 +584,7 @@ export default function ProductsPage() {
                         <div className="font-medium">
                           {formatPrice(product.price)}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-400">
                           per {product.base_unit_name}
                         </div>
                       </TableCell>
@@ -791,8 +791,8 @@ export default function ProductsPage() {
             </Table>
 
             {filteredProducts.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <div className="text-center py-12 text-gray-400">
+                <Package className="h-16 w-16 mx-auto mb-4 text-gray-400" />
                 <h3 className="text-lg font-medium mb-2">No products found</h3>
                 <p className="mb-4">
                   {searchTerm || stockFilter !== "all"

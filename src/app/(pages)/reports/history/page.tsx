@@ -78,6 +78,11 @@ export default function StockHistoryPage() {
     fetchStockHistory();
   };
 
+  const formatNumber = (value: number) => {
+    return Number.isInteger(value) ? value : value;
+  };
+
+
   const resetFilters = () => {
     setProductId("");
     setStartDate("");
@@ -317,8 +322,8 @@ export default function StockHistoryPage() {
                         {getTransactionTypeBadge(item.transaction_type)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {item.quantity} {item.unit_name} ({item.total_pieces}{" "}
-                        pcs)
+                        {formatNumber(Number(item.quantity))} {item.unit_name} (
+                        {item.total_pieces} pcs)
                       </TableCell>
                       <TableCell className="text-right">
                         {item.previous_stock}

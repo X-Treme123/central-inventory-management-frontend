@@ -326,7 +326,7 @@ export default function CreateProductPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Create New Product</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-400">
             Scan barcodes to populate form, then click "Create Product" to save
           </p>
         </div>
@@ -351,10 +351,10 @@ export default function CreateProductPage() {
         )}
 
         {/* Info Alert about workflow */}
-        <Alert className="mb-6 bg-gray-800 border-blue-200">
+        <Alert className="mb-6 bg-gray-800 border-gray-700">
           <Info className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-200">How it works</AlertTitle>
-          <AlertDescription className="text-blue-200">
+          <AlertTitle className="text-gray-200">How it works</AlertTitle>
+          <AlertDescription className="text-gray-400">
             1. Scan or enter barcodes to populate the form automatically<br/>
             2. Fill in remaining product details<br/>
             3. Click "Create Product" to save to database
@@ -454,19 +454,28 @@ export default function CreateProductPage() {
                   <Label htmlFor="price">Base Price (IDR) *</Label>
                   <Input
                     id="price"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={formData.price}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        price: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    placeholder="0"
+                    type="text"
+                    inputMode="numeric"
+                    value={formData.price || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d+$/.test(value)) {
+                        setFormData({
+                          ...formData,
+                          price: value === '' ? 0 : parseFloat(value),
+                        });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value === '' || parseFloat(e.target.value) === 0) {
+                        setFormData({ ...formData, price: 0 });
+                      }
+                    }}
+                    placeholder="e.g., 2500"
                     required
+                    autoComplete="off"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Type directly</p>
                 </div>
               </div>
             </CardContent>
@@ -476,7 +485,7 @@ export default function CreateProductPage() {
           <Card>
             <CardHeader>
               <CardTitle>Barcode Configuration</CardTitle>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-400">
                 Scan barcodes to populate form. System will check if barcodes already exist.
               </p>
             </CardHeader>
@@ -486,7 +495,7 @@ export default function CreateProductPage() {
                 <div className="flex items-center gap-2 mb-3">
                   {getBarcodeIcon("piece")}
                   <Badge className={getBarcodeColor("piece")}>Pieces</Badge>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-400">
                     Individual unit barcode
                   </span>
                 </div>
@@ -537,7 +546,7 @@ export default function CreateProductPage() {
                 <div className="flex items-center gap-2 mb-3">
                   {getBarcodeIcon("pack")}
                   <Badge className={getBarcodeColor("pack")}>Pack</Badge>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-400">
                     Pack/bundle barcode
                   </span>
                 </div>
@@ -583,24 +592,33 @@ export default function CreateProductPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label
-                      htmlFor="pieces_per_pack"
-                      className="text-sm whitespace-nowrap">
+                    <Label htmlFor="pieces_per_pack" className="text-sm whitespace-nowrap">
                       Pieces per pack:
                     </Label>
                     <Input
                       id="pieces_per_pack"
-                      type="number"
-                      min="1"
-                      value={formData.pieces_per_pack}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          pieces_per_pack: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      className="w-24"
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.pieces_per_pack || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^\d+$/.test(value)) {
+                          setFormData({
+                            ...formData,
+                            pieces_per_pack: value === '' ? 1 : parseInt(value, 10),
+                          });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === '' || parseInt(e.target.value) === 0) {
+                          setFormData({ ...formData, pieces_per_pack: 1 });
+                        }
+                      }}
+                      placeholder="e.g., 10"
+                      className="w-32"
+                      autoComplete="off"
                     />
+                    <span className="text-xs text-gray-400">pieces</span>
                   </div>
                 </div>
               </div>
@@ -610,7 +628,7 @@ export default function CreateProductPage() {
                 <div className="flex items-center gap-2 mb-3">
                   {getBarcodeIcon("box")}
                   <Badge className={getBarcodeColor("box")}>Box/Dus</Badge>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-400">
                     Box/carton barcode
                   </span>
                 </div>
@@ -656,24 +674,33 @@ export default function CreateProductPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label
-                      htmlFor="packs_per_box"
-                      className="text-sm whitespace-nowrap">
+                    <Label htmlFor="packs_per_box" className="text-sm whitespace-nowrap">
                       Packs per box:
                     </Label>
                     <Input
                       id="packs_per_box"
-                      type="number"
-                      min="1"
-                      value={formData.packs_per_box}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          packs_per_box: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      className="w-24"
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.packs_per_box || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^\d+$/.test(value)) {
+                          setFormData({
+                            ...formData,
+                            packs_per_box: value === '' ? 1 : parseInt(value, 10),
+                          });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === '' || parseInt(e.target.value) === 0) {
+                          setFormData({ ...formData, packs_per_box: 1 });
+                        }
+                      }}
+                      placeholder="e.g., 12"
+                      className="w-32"
+                      autoComplete="off"
                     />
+                    <span className="text-xs text-gray-400">packs</span>
                   </div>
                 </div>
               </div>
@@ -681,7 +708,7 @@ export default function CreateProductPage() {
               {/* Unit Conversion Summary */}
               <div className="bg-gray-800 p-4 rounded-lg">
                 <h4 className="font-medium mb-2">Unit Conversion Summary</h4>
-                <div className="text-sm text-white space-y-1">
+                <div className="text-sm text-gray-400 space-y-1">
                   <p>• 1 Pack = {formData.pieces_per_pack} Pieces</p>
                   <p>• 1 Box = {formData.packs_per_box} Packs</p>
                   <p>
