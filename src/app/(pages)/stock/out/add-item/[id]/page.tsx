@@ -315,7 +315,7 @@ export default function AddStockOutItemPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading stock out details...</p>
+          <p className="mt-4 text-gray-400">Loading stock out details...</p>
         </div>
       </div>
     );
@@ -347,7 +347,7 @@ export default function AddStockOutItemPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Add Items to Stock Out</h1>
-              <p className="text-gray-600">
+              <p className="text-gray-400">
                 {stockOutHeader.reference_number} - {stockOutHeader.department_name}
               </p>
             </div>
@@ -399,7 +399,7 @@ export default function AddStockOutItemPage() {
                   <Scan className="h-5 w-5" />
                   Barcode Scanner
                 </CardTitle>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-400">
                   Scan product barcode to check stock availability
                 </p>
               </CardHeader>
@@ -435,7 +435,7 @@ export default function AddStockOutItemPage() {
             {scanResult && (
               <Card className="bg-gray-800">
                 <CardHeader>
-                  <CardTitle className="text-orange-400 flex items-center gap-2">
+                  <CardTitle className="text-white flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5" />
                     Product Available for Stock Out
                   </CardTitle>
@@ -456,18 +456,18 @@ export default function AddStockOutItemPage() {
                     {/* Product Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <h4 className="font-medium text-orange-400">Product Information</h4>
-                        <div className="mt-2 space-y-1 text-sm">
+                        <h4 className="font-medium text-white">Product Information</h4>
+                        <div className="mt-2 space-y-1 text-sm text-gray-400">
                           <p><strong>Name:</strong> {scanResult.product.name}</p>
                           <p><strong>Part Number:</strong> {scanResult.product.part_number}</p>
                           <p><strong>Category:</strong> {scanResult.product.category_name}</p>
-                          <p><strong>Base Price:</strong> {scanResult.product.price.toLocaleString("id-ID")} IDR</p>
+                          {/* <p><strong>Base Price:</strong> {scanResult.product.price.toLocaleString("id-ID")} IDR</p> */}
                         </div>
                       </div>
 
                       <div>
-                        <h4 className="font-medium text-orange-400">Stock Information</h4>
-                        <div className="mt-2 space-y-2">
+                        <h4 className="font-medium text-white">Stock Information</h4>
+                        <div className="mt-2 space-y-2 text-gray-400">
                           <div className="flex items-center gap-2">
                             <Badge className={getUnitTypeColor(scanResult.scan_info.detected_unit_type)}>
                               {getUnitTypeIcon(scanResult.scan_info.detected_unit_type)}
@@ -487,7 +487,7 @@ export default function AddStockOutItemPage() {
                     {/* Unit Conversion Info */}
                     <div className="bg-gray-800 p-3 rounded">
                       <h4 className="font-medium text-white mb-2">Unit Conversion</h4>
-                      <div className="text-sm text-white space-y-1">
+                      <div className="text-sm space-y-1 text-gray-400">
                         <p>• 1 Pack = {scanResult.unit_conversion.pieces_per_pack} Pieces</p>
                         <p>• 1 Box = {scanResult.unit_conversion.packs_per_box} Packs = {scanResult.unit_conversion.total_pieces_per_box} Pieces</p>
                       </div>
@@ -515,7 +515,7 @@ export default function AddStockOutItemPage() {
                           Quantity ({scanResult.scan_info.detected_unit_type}s) *
                         </Label>
                         <div className="flex items-center gap-2 mt-1">
-                          <Button
+                          {/* <Button
                             type="button"
                             variant="outline"
                             size="sm"
@@ -525,23 +525,48 @@ export default function AddStockOutItemPage() {
                             }))}
                             disabled={formData.requested_quantity <= 1}>
                             <Minus className="h-3 w-3" />
-                          </Button>
+                          </Button> */}
                           <Input
                             id="quantity"
-                            type="number"
-                            min="1"
-                            max={scanResult.scan_info.available_units}
-                            value={formData.requested_quantity}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                requested_quantity: parseInt(e.target.value) || 1,
-                              })
-                            }
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={formData.requested_quantity || ''}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Hanya izinkan angka
+                              if (value === '' || /^\d+$/.test(value)) {
+                                const numValue = value === '' ? 0 : parseInt(value, 10);
+                                // Validasi max stock
+                                if (numValue <= scanResult.scan_info.available_units) {
+                                  setFormData({
+                                    ...formData,
+                                    requested_quantity: numValue,
+                                  });
+                                } else {
+                                  // Auto-correct ke max jika melebihi
+                                  setFormData({
+                                    ...formData,
+                                    requested_quantity: scanResult.scan_info.available_units,
+                                  });
+                                }
+                              }
+                            }}
+                            onBlur={(e) => {
+                              // Auto-correct jika kosong atau 0
+                              if (e.target.value === '' || parseInt(e.target.value) === 0) {
+                                setFormData({
+                                  ...formData,
+                                  requested_quantity: 1,
+                                });
+                              }
+                            }}
+                            placeholder="Type quantity..."
                             required
-                            className="text-center"
+                            className="mt-1"
+                            autoComplete="off"
                           />
-                          <Button
+                          {/* <Button
                             type="button"
                             variant="outline"
                             size="sm"
@@ -551,9 +576,9 @@ export default function AddStockOutItemPage() {
                             }))}
                             disabled={formData.requested_quantity >= scanResult.scan_info.available_units}>
                             <Plus className="h-3 w-3" />
-                          </Button>
+                          </Button> */}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-400 mt-1">
                           Max: {scanResult.scan_info.available_units} {scanResult.scan_info.detected_unit_type}(s)
                         </p>
                       </div>
@@ -562,21 +587,9 @@ export default function AddStockOutItemPage() {
                         <Label htmlFor="price">
                           Price per {scanResult.scan_info.detected_unit_type} (IDR) *
                         </Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={formData.price_per_unit}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              price_per_unit: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                          required
-                          className="mt-1"
-                        />
+                        <div className="mt-1 p-2 bg-gray-800 rounded-sm border text-center font-medium">
+                          {Math.floor(formData.price_per_unit).toLocaleString('id-ID')} IDR
+                        </div>
                       </div>
 
                       <div>
@@ -593,7 +606,7 @@ export default function AddStockOutItemPage() {
                         <div className="flex items-center justify-between">
                           <div className="space-y-1">
                             <Label className="text-base font-medium">Flexible Quantity Mode</Label>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-gray-400">
                               Take specific number of pieces instead of full {scanResult.scan_info.detected_unit_type}(s)
                             </p>
                           </div>
@@ -616,7 +629,7 @@ export default function AddStockOutItemPage() {
                               placeholder="Enter exact pieces needed"
                               className="mt-1"
                             />
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-400 mt-1">
                               Max: {scanResult.scan_info.total_pieces_in_stock} pieces available
                             </p>
                           </div>
@@ -632,7 +645,7 @@ export default function AddStockOutItemPage() {
                             <Settings className="h-4 w-4" />
                             Custom Unit Conversion
                           </Label>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-400">
                             Override default pieces per pack / packs per box
                           </p>
                         </div>
@@ -678,25 +691,25 @@ export default function AddStockOutItemPage() {
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
-                          <p className="text-gray-600">Requested Quantity</p>
+                          <p className="text-gray-400">Requested Quantity</p>
                           <p className="font-semibold">
                             {formData.requested_quantity} {scanResult.scan_info.detected_unit_type}(s)
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-600">Total Pieces</p>
+                          <p className="text-gray-400">Total Pieces</p>
                           <p className="font-semibold">
                             {calculateTotalPieces().toLocaleString("id-ID")}
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-600">Price per Unit</p>
+                          <p className="text-gray-400">Price per Unit</p>
                           <p className="font-semibold">
-                            {formData.price_per_unit.toLocaleString("id-ID")} IDR
+                            {Math.floor(formData.price_per_unit).toLocaleString('id-ID')}{" "} IDR
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-600">Total Amount</p>
+                          <p className="text-gray-400">Total Amount</p>
                           <p className="font-semibold text-lg">
                             {calculateTotalAmount().toLocaleString("id-ID")} IDR
                           </p>
@@ -706,11 +719,11 @@ export default function AddStockOutItemPage() {
                       {/* Stock Impact */}
                       <div className="mt-3 pt-3 border-t">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Current Stock:</span>
+                          <span className="text-gray-400">Current Stock:</span>
                           <span className="font-medium">{scanResult.scan_info.total_pieces_in_stock} pieces</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">After Stock Out:</span>
+                          <span className="text-gray-400">After Stock Out:</span>
                           <span className="font-medium">
                             {(scanResult.scan_info.total_pieces_in_stock - calculateTotalPieces()).toLocaleString("id-ID")} pieces
                           </span>

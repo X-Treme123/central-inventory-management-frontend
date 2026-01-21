@@ -160,7 +160,7 @@ export default function StockInDetailPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading stock in details...</p>
+          <p className="mt-4 text-gray-400">Loading stock in details...</p>
         </div>
       </div>
     );
@@ -170,8 +170,8 @@ export default function StockInDetailPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Stock In Not Found</h1>
-          <p className="text-gray-600 mb-4">The requested stock in record could not be found.</p>
+          <h1 className="text-2xl font-bold text-gray-400 mb-2">Stock In Not Found</h1>
+          <p className="text-gray-400 mb-4">The requested stock in record could not be found.</p>
           <Button onClick={() => router.push("/stock/in")}>
             Back to Stock In List
           </Button>
@@ -199,7 +199,7 @@ export default function StockInDetailPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">Stock In Details</h1>
-              <p className="text-gray-600">Invoice: {stockIn.invoice_code}</p>
+              <p className="text-gray-400">Invoice: {stockIn.invoice_code}</p>
             </div>
             <div className="flex items-center gap-3">
               <Badge className={getStatusColor(stockIn.status)}>
@@ -261,15 +261,15 @@ export default function StockInDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Invoice Code</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Invoice Code</p>
                 <p className="font-semibold">{stockIn.invoice_code}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Supplier</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Supplier</p>
                 <p className="font-semibold">{stockIn.supplier_name}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Receipt Date</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Receipt Date</p>
                 <p className="font-semibold flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   {new Date(stockIn.receipt_date).toLocaleDateString('id-ID')}
@@ -321,11 +321,11 @@ export default function StockInDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Total Items</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Total Items</p>
                 <p className="text-2xl font-bold text-blue-600">{getTotalItems()}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Total Pieces</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Total Pieces</p>
                 <p className="text-2xl font-bold text-green-600">{getTotalPieces().toLocaleString()}</p>
               </div>
             </CardContent>
@@ -341,11 +341,11 @@ export default function StockInDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Total Amount</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Total Amount</p>
                 <p className="text-xl font-bold text-purple-600">{formatCurrency(getTotalAmount())}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Avg per Item</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Avg per Item</p>
                 <p className="font-semibold">
                   {getTotalItems() > 0 ? formatCurrency(getTotalAmount() / getTotalItems()) : formatCurrency(0)}
                 </p>
@@ -391,7 +391,7 @@ export default function StockInDetailPage() {
                         <TableCell>
                           <div>
                             <div className="font-medium">{item.product_name}</div>
-                            <div className="text-sm text-gray-600">{item.part_number}</div>
+                            <div className="text-sm text-gray-400">{item.part_number}</div>
                           </div>
                         </TableCell>
                         
@@ -407,7 +407,7 @@ export default function StockInDetailPage() {
                             
                             {/* Scanned Barcode */}
                             <div className="text-xs">
-                              <p className="text-gray-500 mb-1">Scanned Barcode:</p>
+                              <p className="text-gray-400 mb-1">Scanned Barcode:</p>
                               <code className="bg-gray-800 px-2 py-1 rounded text-xs font-mono">
                                 {item.scanned_barcode}
                               </code>
@@ -418,14 +418,15 @@ export default function StockInDetailPage() {
                         <TableCell>
                           <div className="space-y-1">
                             <div className="font-medium">
-                              {item.quantity} {item.unit_type}(s)
+                              {Math.floor(item.quantity).toLocaleString('id-ID')} {item.unit_type}
+                              {/* {Math.floor(formData.price_per_unit).toLocaleString('id-ID')} IDR */}
                             </div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-gray-400">
                               = {item.total_pieces.toLocaleString()} pieces
                             </div>
                             {/* Show conversion for non-piece units */}
                             {item.unit_type !== 'piece' && (
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-400">
                                 {item.unit_type === 'pack' && `1 pack = pieces`}
                                 {item.unit_type === 'box' && `1 box = packs = pieces`}
                               </div>
@@ -439,7 +440,7 @@ export default function StockInDetailPage() {
                               <MapPin className="h-3 w-3 text-gray-400" />
                               <span className="font-medium">{item.warehouse_name}</span>
                             </div>
-                            <div className="text-gray-600 ml-4 space-y-1">
+                            <div className="text-gray-400 ml-4 space-y-1">
                               <div>{item.container_name}</div>
                               <div>{item.rack_name}</div>
                             </div>
@@ -451,7 +452,7 @@ export default function StockInDetailPage() {
                             <div className="font-medium">
                               {formatCurrency(item.price_per_unit)}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-400">
                               per {item.unit_type}
                             </div>
                             <div className="font-semibold text-green-600">
@@ -465,7 +466,7 @@ export default function StockInDetailPage() {
                             <User className="h-4 w-4 text-gray-400" />
                             <div>
                               <div className="text-sm font-medium">{item.checked_by_name}</div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-400">
                                 {new Date(item.created_at).toLocaleString('id-ID')}
                               </div>
                             </div>
@@ -503,8 +504,8 @@ export default function StockInDetailPage() {
             ) : (
               <div className="text-center py-12">
                 <Scan className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Items Scanned Yet</h3>
-                <p className="text-gray-600 mb-6">
+                <h3 className="text-lg font-medium text-gray-400 mb-2">No Items Scanned Yet</h3>
+                <p className="text-gray-400 mb-6">
                   Start scanning barcodes to add items to this stock in receipt.
                 </p>
                 {stockIn.status === "pending" && (
@@ -513,7 +514,7 @@ export default function StockInDetailPage() {
                       <Scan className="h-4 w-4 mr-2" />
                       Start Scanning Items
                     </Button>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-400">
                       Use your iWare barcode scanner to quickly add products
                     </div>
                   </div>
@@ -536,29 +537,29 @@ export default function StockInDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">Invoice Code</p>
+                  <p className="text-gray-400">Invoice Code</p>
                   <p className="font-medium">{stockIn.invoice_code}</p>
                 </div>
                 {stockIn.packing_list_number && (
                   <div>
-                    <p className="text-gray-500">Packing List</p>
+                    <p className="text-gray-400">Packing List</p>
                     <p className="font-medium">{stockIn.packing_list_number}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-gray-500">Supplier</p>
+                  <p className="text-gray-400">Supplier</p>
                   <p className="font-medium">{stockIn.supplier_name}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Receipt Date</p>
+                  <p className="text-gray-400">Receipt Date</p>
                   <p className="font-medium">{new Date(stockIn.receipt_date).toLocaleDateString('id-ID')}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Received By</p>
+                  <p className="text-gray-400">Received By</p>
                   <p className="font-medium">{stockIn.received_by_name}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Status</p>
+                  <p className="text-gray-400">Status</p>
                   <Badge className={getStatusColor(stockIn.status)}>
                     {stockIn.status.toUpperCase()}
                   </Badge>
@@ -578,22 +579,22 @@ export default function StockInDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">Created At</p>
+                  <p className="text-gray-400">Created At</p>
                   <p className="font-medium">{new Date(stockIn.created_at).toLocaleString('id-ID')}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Last Updated</p>
+                  <p className="text-gray-400">Last Updated</p>
                   <p className="font-medium">{new Date(stockIn.updated_at).toLocaleString('id-ID')}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Scanning Method</p>
+                  <p className="text-gray-400">Scanning Method</p>
                   <p className="font-medium flex items-center gap-1">
                     <QrCode className="h-4 w-4" />
                     Barcode Scanner (iWare)
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Total Scans</p>
+                  <p className="text-gray-400">Total Scans</p>
                   <p className="font-medium">
                     {itemsByUnitType.piece + itemsByUnitType.pack + itemsByUnitType.box} barcode scans
                   </p>

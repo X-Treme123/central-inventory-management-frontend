@@ -599,10 +599,10 @@ export default function ProductsPage() {
                               <Eye className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
                             <DialogHeader>
-                              <DialogTitle>Product Details</DialogTitle>
-                              <DialogDescription>
+                              <DialogTitle className="text-white">Product Details</DialogTitle>
+                              <DialogDescription className="text-slate-400">
                                 Complete information for {selectedProduct?.name}
                               </DialogDescription>
                             </DialogHeader>
@@ -611,150 +611,80 @@ export default function ProductsPage() {
                                 {/* Basic Info */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                   <div>
-                                    <h4 className="font-medium mb-3">
-                                      Basic Information
-                                    </h4>
+                                    <h4 className="font-medium mb-3 text-white">Basic Information</h4>
                                     <div className="space-y-2 text-sm">
                                       <div className="flex justify-between">
-                                        <span className="text-gray-600">
-                                          Name:
-                                        </span>
-                                        <span className="font-medium">
-                                          {selectedProduct.name}
-                                        </span>
+                                        <span className="text-slate-400">Name:</span>
+                                        <span className="font-medium text-white">{selectedProduct.name}</span>
                                       </div>
                                       <div className="flex justify-between">
-                                        <span className="text-gray-600">
-                                          Part Number:
-                                        </span>
-                                        <span className="font-medium">
-                                          {selectedProduct.part_number}
-                                        </span>
+                                        <span className="text-slate-400">Part Number:</span>
+                                        <span className="font-medium text-white">{selectedProduct.part_number}</span>
                                       </div>
                                       <div className="flex justify-between">
-                                        <span className="text-gray-600">
-                                          Category:
-                                        </span>
-                                        <span className="font-medium">
-                                          {selectedProduct.category_name}
-                                        </span>
+                                        <span className="text-slate-400">Category:</span>
+                                        <span className="font-medium text-white">{selectedProduct.category_name}</span>
                                       </div>
                                       <div className="flex justify-between">
-                                        <span className="text-gray-600">
-                                          Base Unit:
-                                        </span>
-                                        <span className="font-medium">
-                                          {selectedProduct.base_unit_name}
-                                        </span>
+                                        <span className="text-slate-400">Base Unit:</span>
+                                        <span className="font-medium text-white">{selectedProduct.base_unit_name}</span>
                                       </div>
                                       <div className="flex justify-between">
-                                        <span className="text-gray-600">
-                                          Price:
-                                        </span>
-                                        <span className="font-medium">
-                                          {formatPrice(selectedProduct.price)}
-                                        </span>
+                                        <span className="text-slate-400">Price:</span>
+                                        <span className="font-medium text-white">{formatPrice(selectedProduct.price)}</span>
                                       </div>
                                     </div>
 
                                     {selectedProduct.description && (
                                       <div className="mt-4">
-                                        <h5 className="font-medium mb-2">
-                                          Description
-                                        </h5>
-                                        <p className="text-sm text-gray-600">
-                                          {selectedProduct.description}
-                                        </p>
+                                        <h5 className="font-medium mb-2 text-white">Description</h5>
+                                        <p className="text-sm text-slate-300">{selectedProduct.description}</p>
                                       </div>
                                     )}
                                   </div>
 
                                   <div>
-                                    <h4 className="font-medium mb-3">
-                                      Stock Information
-                                    </h4>
+                                    <h4 className="font-medium mb-3 text-white">Stock Information</h4>
                                     <div className="space-y-3">
                                       <div className="flex items-center gap-2">
-                                        <span className="text-gray-600">
-                                          Status:
-                                        </span>
-                                        <Badge
-                                          className={
-                                            getStockStatus(
-                                              selectedProduct.total_stock_pieces ||
-                                                0
-                                            ).color
-                                          }>
+                                        <span className="text-slate-400">Status:</span>
+                                        <Badge className={getStockStatus(selectedProduct.total_stock_pieces || 0).color}>
                                           <span className="flex items-center gap-1">
-                                            {
-                                              getStockStatus(
-                                                selectedProduct.total_stock_pieces ||
-                                                  0
-                                              ).icon
-                                            }
-                                            {
-                                              getStockStatus(
-                                                selectedProduct.total_stock_pieces ||
-                                                  0
-                                              ).text
-                                            }
+                                            {getStockStatus(selectedProduct.total_stock_pieces || 0).icon}
+                                            {getStockStatus(selectedProduct.total_stock_pieces || 0).text}
                                           </span>
                                         </Badge>
                                       </div>
 
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div className="bg-gray-800 p-3 rounded">
-                                          <p className="text-white font-medium">
-                                            Total Pieces
-                                          </p>
-                                          <p className="text-xl font-bold text-white">
-                                            {(
-                                              selectedProduct.total_stock_pieces ||
-                                              0
-                                            ).toLocaleString()}
+                                      <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div className="bg-blue-600 p-4 rounded-lg">
+                                          <p className="text-blue-100 text-xs font-medium mb-1.5">Total Pieces</p>
+                                          <p className="text-2xl font-bold text-white">
+                                            {(selectedProduct.total_stock_pieces || 0).toLocaleString()}
                                           </p>
                                         </div>
 
-                                        <div className="bg-gray-800 p-3 rounded">
-                                          <p className="text-white font-medium">
-                                            Available Packs
-                                          </p>
-                                          <p className="text-xl font-bold text-white">
-                                            {Math.floor(
-                                              (selectedProduct.total_stock_pieces ||
-                                                0) /
-                                                selectedProduct.pieces_per_pack
-                                            )}
+                                        <div className="bg-green-600 p-4 rounded-lg">
+                                          <p className="text-green-100 text-xs font-medium mb-1.5">Available Packs</p>
+                                          <p className="text-2xl font-bold text-white">
+                                            {Math.floor((selectedProduct.total_stock_pieces || 0) / selectedProduct.pieces_per_pack)}
                                           </p>
                                         </div>
 
-                                        <div className="bg-gray-800 p-3 rounded">
-                                          <p className="text-white font-medium">
-                                            Available Boxes
-                                          </p>
-                                          <p className="text-xl font-bold text-white">
-                                            {Math.floor(
-                                              (selectedProduct.total_stock_pieces ||
-                                                0) /
-                                                (selectedProduct.pieces_per_pack *
-                                                  selectedProduct.packs_per_box)
-                                            )}
+                                        <div className="bg-purple-600 p-4 rounded-lg">
+                                          <p className="text-purple-100 text-xs font-medium mb-1.5">Available Boxes</p>
+                                          <p className="text-2xl font-bold text-white">
+                                            {Math.floor((selectedProduct.total_stock_pieces || 0) / (selectedProduct.pieces_per_pack * selectedProduct.packs_per_box))}
                                           </p>
                                         </div>
 
-                                        <div className="bg-gray-800 p-3 rounded">
-                                          <p className="text-gray-200 font-medium">
-                                            Unit Conversion
-                                          </p>
-                                          <p className="text-sm">
-                                            1 Pack ={" "}
-                                            {selectedProduct.pieces_per_pack}{" "}
-                                            pcs
-                                            <br />1 Box ={" "}
-                                            {selectedProduct.packs_per_box}{" "}
-                                            packs
-                                          </p>
-                                        </div>
+                                        {/* <div className="bg-slate-700 p-4 rounded-lg border border-slate-600">
+                                          <p className="text-slate-300 text-xs font-medium mb-1.5">Unit Conversion</p>
+                                          <div className="text-xs text-slate-200 space-y-0.5">
+                                            <div>1 Pack = {selectedProduct.pieces_per_pack} pcs</div>
+                                            <div>1 Box = {selectedProduct.packs_per_box} packs</div>
+                                          </div>
+                                        </div> */}
                                       </div>
                                     </div>
                                   </div>
@@ -762,124 +692,93 @@ export default function ProductsPage() {
 
                                 {/* Barcode Configuration */}
                                 <div>
-                                  <h4 className="font-medium mb-3">
-                                    Barcode Configuration
-                                  </h4>
+                                  <h4 className="font-medium mb-3 text-white">Barcode Configuration</h4>
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {selectedProduct.piece_barcode && (
-                                      <div className="border rounded-lg p-4">
+                                      <div className="border border-slate-700 rounded-lg p-4 bg-slate-800">
                                         <div className="flex items-center gap-2 mb-3">
                                           <Badge className="bg-blue-500">
                                             <Package className="h-3 w-3 mr-1" />
                                             Piece
                                           </Badge>
                                         </div>
-                                        <code className="text-sm font-mono block break-all bg-gray-800 p-2 rounded">
+                                        <code className="text-sm font-mono block break-all bg-slate-900 text-blue-300 p-2 rounded">
                                           {selectedProduct.piece_barcode}
                                         </code>
-                                        <p className="text-xs text-gray-500 mt-2">
-                                          Individual unit barcode
-                                        </p>
+                                        <p className="text-xs text-slate-400 mt-2">Individual unit barcode</p>
                                       </div>
                                     )}
 
                                     {selectedProduct.pack_barcode && (
-                                      <div className="border rounded-lg p-4">
+                                      <div className="border border-slate-700 rounded-lg p-4 bg-slate-800">
                                         <div className="flex items-center gap-2 mb-3">
                                           <Badge className="bg-green-500">
                                             <Layers className="h-3 w-3 mr-1" />
                                             Pack
                                           </Badge>
                                         </div>
-                                        <code className="text-sm font-mono block break-all bg-gray-800 p-2 rounded">
+                                        <code className="text-sm font-mono block break-all bg-slate-900 text-green-300 p-2 rounded">
                                           {selectedProduct.pack_barcode}
                                         </code>
-                                        <p className="text-xs text-gray-500 mt-2">
-                                          Pack barcode (1 pack ={" "}
-                                          {selectedProduct.pieces_per_pack}{" "}
-                                          pieces)
+                                        <p className="text-xs text-slate-400 mt-2">
+                                          Pack barcode (1 pack = {selectedProduct.pieces_per_pack} pieces)
                                         </p>
                                       </div>
                                     )}
 
                                     {selectedProduct.box_barcode && (
-                                      <div className="border rounded-lg p-4">
+                                      <div className="border border-slate-700 rounded-lg p-4 bg-slate-800">
                                         <div className="flex items-center gap-2 mb-3">
                                           <Badge className="bg-purple-500">
                                             <Box className="h-3 w-3 mr-1" />
                                             Box
                                           </Badge>
                                         </div>
-                                        <code className="text-sm font-mono block break-all bg-gray-800 p-2 rounded">
+                                        <code className="text-sm font-mono block break-all bg-slate-900 text-purple-300 p-2 rounded">
                                           {selectedProduct.box_barcode}
                                         </code>
-                                        <p className="text-xs text-gray-500 mt-2">
-                                          Box barcode (1 box ={" "}
-                                          {selectedProduct.packs_per_box} packs
-                                          ={" "}
-                                          {selectedProduct.pieces_per_pack *
-                                            selectedProduct.packs_per_box}{" "}
-                                          pieces)
+                                        <p className="text-xs text-slate-400 mt-2">
+                                          Box barcode (1 box = {selectedProduct.packs_per_box} packs = {selectedProduct.pieces_per_pack * selectedProduct.packs_per_box} pieces)
                                         </p>
                                       </div>
                                     )}
                                   </div>
 
                                   {getBarcodeCount(selectedProduct) === 0 && (
-                                    <div className="text-center py-8 text-gray-500">
-                                      <Scan className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                                      <p>
-                                        No barcodes configured for this product
-                                      </p>
-                                      <p className="text-sm">
-                                        Edit the product to add barcode
-                                        information
-                                      </p>
+                                    <div className="text-center py-8 text-slate-400">
+                                      <Scan className="h-12 w-12 mx-auto mb-2 text-slate-600" />
+                                      <p>No barcodes configured for this product</p>
+                                      <p className="text-sm">Edit the product to add barcode information</p>
                                     </div>
                                   )}
                                 </div>
 
                                 {/* Recent Scan Result Display */}
-                                {scanResult &&
-                                  scanResult.product.id ===
-                                    selectedProduct.id && (
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                      <h4 className="font-medium text-green-800 mb-2 flex items-center gap-2">
-                                        <Scan className="h-4 w-4" />
-                                        Recent Scan Result
-                                      </h4>
-                                      <div className="text-sm space-y-1">
-                                        <div>
-                                          <strong>Scanned Barcode:</strong>{" "}
-                                          <code className="bg-white px-1 rounded">
-                                            {
-                                              scanResult.scan_info
-                                                .scanned_barcode
-                                            }
-                                          </code>
-                                        </div>
-                                        <div>
-                                          <strong>Detected Unit:</strong>{" "}
-                                          {
-                                            scanResult.scan_info
-                                              .detected_unit_type
-                                          }
-                                        </div>
-                                        <div>
-                                          <strong>Available Units:</strong>{" "}
-                                          {scanResult.scan_info.available_units}
-                                        </div>
-                                        <div>
-                                          <strong>Total Stock:</strong>{" "}
-                                          {
-                                            scanResult.scan_info
-                                              .total_pieces_in_stock
-                                          }{" "}
-                                          pieces
-                                        </div>
+                                {scanResult && scanResult.product.id === selectedProduct.id && (
+                                  <div className="bg-green-900/20 border border-green-700 rounded-lg p-4">
+                                    <h4 className="font-medium text-green-300 mb-2 flex items-center gap-2">
+                                      <Scan className="h-4 w-4" />
+                                      Recent Scan Result
+                                    </h4>
+                                    <div className="text-sm space-y-1 text-slate-300">
+                                      <div>
+                                        <strong>Scanned Barcode:</strong>{" "}
+                                        <code className="bg-slate-900 text-green-300 px-1 rounded">
+                                          {scanResult.scan_info.scanned_barcode}
+                                        </code>
+                                      </div>
+                                      <div>
+                                        <strong>Detected Unit:</strong> {scanResult.scan_info.detected_unit_type}
+                                      </div>
+                                      <div>
+                                        <strong>Available Units:</strong> {scanResult.scan_info.available_units}
+                                      </div>
+                                      <div>
+                                        <strong>Total Stock:</strong> {scanResult.scan_info.total_pieces_in_stock} pieces
                                       </div>
                                     </div>
-                                  )}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </DialogContent>

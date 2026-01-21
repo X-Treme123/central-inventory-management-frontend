@@ -179,7 +179,7 @@ export default function CreateStockOutPage() {
             <CardContent className="p-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">Loading Form Data</h3>
-              <p className="text-gray-600">
+              <p className="text-gray-400">
                 Fetching user information...
               </p>
             </CardContent>
@@ -197,7 +197,7 @@ export default function CreateStockOutPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Create Stock Out Request</h1>
-              <p className="text-gray-600">Create a new request for outgoing inventory</p>
+              <p className="text-gray-400">Create a new request for outgoing inventory</p>
             </div>
             <div className="flex gap-2">
               <Button
@@ -242,7 +242,7 @@ export default function CreateStockOutPage() {
               <FileText className="h-5 w-5" />
               Request Information
             </CardTitle>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-400">
               Fill in the basic information for your stock out request
             </p>
           </CardHeader>
@@ -264,7 +264,7 @@ export default function CreateStockOutPage() {
                   disabled
                   className="mt-1 bg-gray-800"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Request date is automatically set to today
                 </p>
               </div>
@@ -284,7 +284,7 @@ export default function CreateStockOutPage() {
                   required
                   className="mt-1 font-mono"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Unique identifier for this stock out request
                 </p>
               </div>
@@ -314,7 +314,7 @@ export default function CreateStockOutPage() {
                               {user.department}
                             </Badge>
                           </div>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-400">
                             {user.position} • {user.lokasi}
                           </span>
                         </div>
@@ -346,7 +346,7 @@ export default function CreateStockOutPage() {
                   </div>
                 )}
                 
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Select a user from the list. Department will be automatically filled based on the selected user.
                 </p>
               </div>
@@ -365,7 +365,7 @@ export default function CreateStockOutPage() {
                   rows={3}
                   className="mt-1"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Optional notes or special instructions for this request
                 </p>
               </div>
@@ -375,19 +375,19 @@ export default function CreateStockOutPage() {
                 <h4 className="font-medium text-white mb-2">Request Summary</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-600">Reference:</p>
+                    <p className="text-gray-400">Reference:</p>
                     <p className="font-medium">{formData.reference_number || "Not set"}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Requestor:</p>
+                    <p className="text-gray-400">Requestor:</p>
                     <p className="font-medium">{formData.requestor_name || "Not selected"}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Department:</p>
+                    <p className="text-gray-400">Department:</p>
                     <p className="font-medium">{formData.department_id || "Not selected"}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Status:</p>
+                    <p className="text-gray-400">Status:</p>
                     <p className="font-medium text-yellow-600">Pending</p>
                   </div>
                 </div>
@@ -424,8 +424,8 @@ export default function CreateStockOutPage() {
 
               {/* Next Steps Info */}
               <div className="border-t pt-4">
-                <h4 className="font-medium text-gray-800 mb-2">What happens next?</h4>
-                <div className="text-sm text-gray-600 space-y-1">
+                <h4 className="font-medium text-gray-400 mb-2">What happens next?</h4>
+                <div className="text-sm text-gray-400 space-y-1">
                   <p>1. Your request will be created with status "Pending"</p>
                   <p>2. You can then add items by scanning barcodes</p>
                   <p>3. Request needs approval before items can be dispensed</p>

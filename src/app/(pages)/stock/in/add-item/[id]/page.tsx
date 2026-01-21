@@ -339,7 +339,7 @@ export default function AddStockInItemPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading stock in details...</p>
+          <p className="mt-4 text-gray-400">Loading stock in details...</p>
         </div>
       </div>
     );
@@ -372,7 +372,7 @@ export default function AddStockInItemPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Add Items to Stock In</h1>
-              <p className="text-gray-600">
+              <p className="text-gray-400">
                 {stockInHeader.invoice_code} - {stockInHeader.supplier_name}
               </p>
             </div>
@@ -424,7 +424,7 @@ export default function AddStockInItemPage() {
                   <Scan className="h-5 w-5" />
                   Barcode Scanner
                 </CardTitle>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-400">
                   Scan barcode with your iWare scanner or enter manually
                 </p>
               </CardHeader>
@@ -451,7 +451,7 @@ export default function AddStockInItemPage() {
                         {isScanning ? "Scanning..." : "Scan"}
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       iWare scanner will automatically scan when you trigger it
                     </p>
                   </div>
@@ -461,9 +461,9 @@ export default function AddStockInItemPage() {
 
             {/* Scan Result Display */}
             {scanResult && (
-              <Card className="border-green-200 bg-gray-800">
+              <Card className="border-grey-200 bg-gray-800">
                 <CardHeader>
-                  <CardTitle className="text-green-800 flex items-center gap-2">
+                  <CardTitle className="text-white flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5" />
                     Product Detected
                   </CardTitle>
@@ -473,10 +473,10 @@ export default function AddStockInItemPage() {
                     {/* Product Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <h4 className="font-medium text-green-800">
+                        <h4 className="font-medium text-white">
                           Product Information
                         </h4>
-                        <div className="mt-2 space-y-1 text-sm">
+                        <div className="mt-2 space-y-1 text-sm text-gray-400">
                           <p>
                             <strong>Name:</strong> {scanResult.product.name}
                           </p>
@@ -497,10 +497,10 @@ export default function AddStockInItemPage() {
                       </div>
 
                       <div>
-                        <h4 className="font-medium text-green-800">
+                        <h4 className="font-medium text-white">
                           Scan Information
                         </h4>
-                        <div className="mt-2 space-y-2">
+                        <div className="mt-2 space-y-2 text-gray-400">
                           <div className="flex items-center gap-2">
                             <Badge
                               className={getUnitTypeColor(
@@ -541,7 +541,7 @@ export default function AddStockInItemPage() {
                       <h4 className="font-medium text-white mb-2">
                         Unit Conversion
                       </h4>
-                      <div className="text-sm text-white space-y-1">
+                      <div className="text-sm text-gray-400 space-y-1">
                         <p>
                           • 1 Pack ={" "}
                           {scanResult.unit_conversion.pieces_per_pack} Pieces
@@ -572,48 +572,56 @@ export default function AddStockInItemPage() {
                   <form onSubmit={handleSubmitItem} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Quantity */}
+                      {/* ✅ QUANTITY - FREE TEXT INPUT */}
                       <div>
                         <Label htmlFor="quantity">
-                          Quantity ({scanResult.scan_info.detected_unit_type}s)
-                          *
+                          Quantity ({scanResult.scan_info.detected_unit_type}s) *
                         </Label>
                         <Input
                           id="quantity"
-                          type="number"
-                          min="1"
-                          value={formData.quantity}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              quantity: parseInt(e.target.value) || 1,
-                            })
-                          }
+                          type="text"  // ⭐ Ganti dari "number" ke "text"
+                          inputMode="numeric"  // Keyboard angka di mobile
+                          pattern="[0-9]*"
+                          value={formData.quantity || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Hanya izinkan angka
+                            if (value === '' || /^\d+$/.test(value)) {
+                              setFormData({
+                                ...formData,
+                                quantity: value === '' ? 0 : parseInt(value, 10),
+                              });
+                            }
+                          }}
+                          onBlur={(e) => {
+                            // Auto-set ke 1 jika kosong
+                            if (e.target.value === '' || parseInt(e.target.value) === 0) {
+                              setFormData({
+                                ...formData,
+                                quantity: 1,
+                              });
+                            }
+                          }}
+                          placeholder="Type quantity..."
                           required
                           className="mt-1"
+                          autoComplete="off"
                         />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Type directly (e.g., 150)
+                        </p>
                       </div>
-
                       {/* Price per Unit */}
                       <div>
-                        <Label htmlFor="price">
-                          Price per {scanResult.scan_info.detected_unit_type}{" "}
-                          (IDR) *
+                        <Label>
+                          Price per {scanResult.scan_info.detected_unit_type} (IDR)
                         </Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={formData.price_per_unit}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              price_per_unit: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                          required
-                          className="mt-1"
-                        />
+                        <div className="mt-1 p-2 bg-gray-800 rounded-sm border text-center font-medium">
+                          {Math.floor(formData.price_per_unit).toLocaleString('id-ID')} IDR
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          From product data
+                        </p>
                       </div>
 
                       {/* Calculated Total Pieces */}
@@ -631,7 +639,7 @@ export default function AddStockInItemPage() {
                         <MapPin className="h-4 w-4" />
                         Storage Location
                       </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                         <div>
                           <Label>Warehouse *</Label>
                           <Select
@@ -735,7 +743,7 @@ export default function AddStockInItemPage() {
                         <div>
                           <p className="text-blue-600">Price per Unit</p>
                           <p className="font-semibold">
-                            {formData.price_per_unit.toLocaleString("id-ID")}{" "}
+                            {Math.floor(formData.price_per_unit).toLocaleString('id-ID')}{" "}
                             IDR
                           </p>
                         </div>
@@ -852,7 +860,7 @@ export default function AddStockInItemPage() {
               <CardHeader>
                 <CardTitle className="text-lg">Troubleshooting</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm space-y-2">
+              <CardContent className="text-sm space-y-2 text-gray-400">
                 <p>
                   <strong>Scanner not working?</strong> Check USB connection and
                   ensure cursor is in the barcode field.

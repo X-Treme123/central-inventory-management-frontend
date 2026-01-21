@@ -141,7 +141,7 @@ export default function StockOutDetailPage() {
       case "rejected":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        return "bg-gray-100 text-gray-400 dark:bg-gray-900 dark:text-gray-400";
     }
   };
 
@@ -193,7 +193,7 @@ export default function StockOutDetailPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading stock out details...</p>
+          <p className="mt-4 text-gray-400">Loading stock out details...</p>
         </div>
       </div>
     );
@@ -241,7 +241,7 @@ export default function StockOutDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Stock Out Details</h1>
-              <p className="text-gray-600">{stockOut.reference_number}</p>
+              <p className="text-gray-400">{stockOut.reference_number}</p>
             </div>
             <div className="flex gap-2">
               <Button
@@ -298,33 +298,33 @@ export default function StockOutDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-gray-500" />
+                      <FileText className="h-4 w-4 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600">Reference Number</p>
+                        <p className="text-sm text-gray-400">Reference Number</p>
                         <p className="font-medium">{stockOut.reference_number}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-gray-500" />
+                      <Building className="h-4 w-4 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600">Department</p>
+                        <p className="text-sm text-gray-400">Department</p>
                         <p className="font-medium">{stockOut.department_name}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-500" />
+                      <User className="h-4 w-4 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600">Requestor</p>
+                        <p className="text-sm text-gray-400">Requestor</p>
                         <p className="font-medium">{stockOut.requestor_name}</p>
-                        <p className="text-sm text-gray-500">{stockOut.requestor_username}</p>
+                        <p className="text-sm text-gray-400">{stockOut.requestor_username}</p>
                       </div>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <Calendar className="h-4 w-4 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600">Request Date</p>
+                        <p className="text-sm text-gray-400">Request Date</p>
                         <p className="font-medium">
                           {new Date(stockOut.request_date).toLocaleDateString()}
                         </p>
@@ -332,12 +332,12 @@ export default function StockOutDetailPage() {
                     </div>
                     {stockOut.approved_by && stockOut.approver_username && (
                       <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-gray-500" />
+                        <Check className="h-4 w-4 text-gray-400" />
                         <div>
-                          <p className="text-sm text-gray-600">Approved By</p>
+                          <p className="text-sm text-gray-400">Approved By</p>
                           <p className="font-medium">{stockOut.approver_username}</p>
                           {stockOut.approval_date && (
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               {new Date(stockOut.approval_date).toLocaleDateString()}
                             </p>
                           )}
@@ -346,7 +346,7 @@ export default function StockOutDetailPage() {
                     )}
                     {stockOut.notes && (
                       <div>
-                        <p className="text-sm text-gray-600">Notes</p>
+                        <p className="text-sm text-gray-400">Notes</p>
                         <p className="font-medium">{stockOut.notes}</p>
                       </div>
                     )}
@@ -370,18 +370,18 @@ export default function StockOutDetailPage() {
                             <th className="text-left py-2 px-2 font-medium">Product</th>
                             <th className="text-left py-2 px-2 font-medium">Unit</th>
                             <th className="text-left py-2 px-2 font-medium">Quantity</th>
-                            <th className="text-left py-2 px-2 font-medium">Pieces</th>
+                            {/* <th className="text-left py-2 px-2 font-medium">Pieces</th> */}
                             <th className="text-left py-2 px-2 font-medium">Price</th>
                             <th className="text-left py-2 px-2 font-medium">Total</th>
                           </tr>
                         </thead>
                         <tbody>
                           {stockOut.items.map((item, index) => (
-                            <tr key={item.id} className="border-b hover:bg-gray-50">
+                            <tr key={item.id} className="border-b hover:bg-gray-700">
                               <td className="py-3 px-2">
                                 <div>
                                   <div className="font-medium">{item.product_name}</div>
-                                  <div className="text-sm text-gray-500">{item.part_number}</div>
+                                  <div className="text-sm text-gray-400">{item.part_number}</div>
                                   {item.scanned_barcode && (
                                     <div className="text-xs text-gray-400 font-mono">
                                       {item.scanned_barcode}
@@ -401,21 +401,21 @@ export default function StockOutDetailPage() {
                                 </div>
                               </td>
                               <td className="py-3 px-2">
-                                <div className="font-medium">{item.quantity}</div>
+                                <div className="font-medium">{Math.floor(item.quantity).toLocaleString('id-ID')}</div>
                               </td>
-                              <td className="py-3 px-2">
+                              {/* <td className="py-3 px-2">
                                 <div className="font-medium text-orange-600">
                                   {item.total_pieces.toLocaleString("id-ID")}
                                 </div>
-                              </td>
+                              </td> */}
                               <td className="py-3 px-2">
                                 <div className="text-sm">
-                                  {item.price_per_unit.toLocaleString("id-ID")} IDR
+                                  {Math.floor(item.price_per_unit).toLocaleString('id-ID')} IDR
                                 </div>
                               </td>
                               <td className="py-3 px-2">
                                 <div className="font-medium">
-                                  {item.total_amount.toLocaleString("id-ID")} IDR
+                                    {Math.floor(item.total_amount).toLocaleString('id-ID')} IDR
                                 </div>
                               </td>
                             </tr>
@@ -428,23 +428,23 @@ export default function StockOutDetailPage() {
                     <div className="border-t pt-4">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
-                          <p className="text-gray-600">Total Items</p>
+                          <p className="text-gray-400">Total Items</p>
                           <p className="font-semibold text-lg">{stockOut.items.length}</p>
                         </div>
                         <div>
-                          <p className="text-gray-600">Total Pieces</p>
+                          <p className="text-gray-400">Total Pieces</p>
                           <p className="font-semibold text-lg text-orange-600">
                             {calculateTotalPieces().toLocaleString("id-ID")}
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-600">Total Value</p>
+                          <p className="text-gray-400">Total Value</p>
                           <p className="font-semibold text-lg">
-                            {calculateTotalValue().toLocaleString("id-ID")} IDR
+                            {Math.floor(calculateTotalValue()).toLocaleString('id-ID')} IDR
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-600">Avg Price/Piece</p>
+                          <p className="text-gray-400">Avg Price/Piece</p>
                           <p className="font-semibold text-lg">
                             {calculateTotalPieces() > 0 
                               ? Math.round(calculateTotalValue() / calculateTotalPieces()).toLocaleString("id-ID")
@@ -457,8 +457,8 @@ export default function StockOutDetailPage() {
                 ) : (
                   <div className="text-center py-8">
                     <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Items Added</h3>
-                    <p className="text-gray-600 mb-4">
+                    <h3 className="text-lg font-medium text-white mb-2">No Items Added</h3>
+                    <p className="text-gray-400 mb-4">
                       No items have been added to this stock out request yet.
                     </p>
                     {workflowActions.canAddItems && (
@@ -575,7 +575,7 @@ export default function StockOutDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Current Status</span>
+                  <span className="text-sm text-gray-400">Current Status</span>
                   <Badge className={getStatusBadgeColor(stockOut.status)}>
                     {getStatusIcon(stockOut.status)}
                     <span className="ml-1 capitalize">{stockOut.status}</span>
@@ -584,19 +584,19 @@ export default function StockOutDetailPage() {
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Can Add Items:</span>
+                    <span className="text-gray-400">Can Add Items:</span>
                     <span className={workflowActions.canAddItems ? "text-green-600" : "text-red-600"}>
                       {workflowActions.canAddItems ? "Yes" : "No"}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Can Approve:</span>
+                    <span className="text-gray-400">Can Approve:</span>
                     <span className={workflowActions.canApprove ? "text-green-600" : "text-red-600"}>
                       {workflowActions.canApprove ? "Yes" : "No"}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Can Complete:</span>
+                    <span className="text-gray-400">Can Complete:</span>
                     <span className={workflowActions.canComplete ? "text-green-600" : "text-red-600"}>
                       {workflowActions.canComplete ? "Yes" : "No"}
                     </span>
